@@ -1,0 +1,8 @@
+{
+  "name": "file-spliter",
+  "version": "1.0.0",
+  "description": "Split big zips, folders and image sets into smaller parts and rejoin them, all in the browser.",
+  "private": true,
+  "license": "MIT",
+  "scripts": { "test": "node test/engine.test.mjs", "start": "npx --yes serve ." }
+}

@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Spliter — split big zips and folders into smaller parts</title>
+    <meta name="description" content="File Spliter cuts a big zip, folder or image set into smaller parts of the exact size you choose, then rejoins them. Runs entirely in your browser. Nothing is uploaded.">
+    <meta name="keywords" content="split zip, zip splitter, split large file, divide zip into parts, rejoin zip, split folder, file splitter online, no upload">
+    <meta name="theme-color" content="#EFE8D8">
+    <link rel="canonical" href="/">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="File Spliter">
+    <meta property="og:title" content="File Spliter — split big zips into smaller parts">
+    <meta property="og:description" content="Cut a big zip, folder or image set into parts of the size you choose, then rejoin them. Private: it all runs in your browser.">
+    <meta property="og:image" content="/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="File Spliter — split big zips into smaller parts">
+    <meta name="twitter:description" content="Cut a big zip, folder or image set into parts of the size you choose, then rejoin them. Nothing is uploaded.">
+    <meta name="twitter:image" content="/og-image.png">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"File Spliter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any (modern browser)","description":"Split big zip files, folders and image sets into smaller parts and rejoin them. Runs entirely in the browser.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+    <!-- Google Fonts: Shippori Mincho, Cormorant Garamond, Plus Jakarta Sans, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Shippori+Mincho:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================================================
+           1. CSS VARIABLES & EDO-PERIOD ATMOSPHERIC MOODS
+           ============================================================================ */
+        :root,
+        [data-version="1"] {
+            /* 01 / DAWN MIST (朝霧) — Aged Washi Parchment & Vermilion Sun */
+            --bg-color: #EFE8D8;
+            --text-primary: #181715;
+            --text-muted: #5C564D;
+            --accent: #B8332A;
+            --accent-gold: #A68446;
+            --surface: rgba(239, 232, 216, 0.80);
+            --surface-solid: #EFE8D8;
+            --border-hairline: rgba(24, 23, 21, 0.14);
+            --pill-active-bg: #181715;
+            --pill-active-text: #EFE8D8;
+            --shadow-dock: 0 14px 36px -8px rgba(24, 23, 21, 0.14);
+
+            --font-display: 'Shippori Mincho', 'Cormorant Garamond', Georgia, serif;
+            --font-serif-italic: 'Cormorant Garamond', Georgia, serif;
+            --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-pill: 9999px;
+            --radius-card: 8px;
+        }
+
+        [data-version="2"] {
+            /* 02 / CRIMSON TWILIGHT (黄昏) — Aged Amber Ochre & Burnt Crimson */
+            --bg-color: #E5D5BE;
+            --text-primary: #1C1512;
+            --text-muted: #614E43;
+            --accent: #9E261E;
+            --accent-gold: #9A6B2F;
+            --surface: rgba(229, 213, 190, 0.82);
+            --surface-solid: #E5D5BE;
+            --border-hairline: rgba(28, 21, 18, 0.16);
+            --pill-active-bg: #9E261E;
+            --pill-active-text: #F7EFE2;
+            --shadow-dock: 0 14px 36px -8px rgba(28, 21, 18, 0.18);
+        }
+
+        [data-version="3"] {
+            /* 03 / MOONLIT RONIN (月夜) — Nocturnal Indigo Sumi & Silver Moon */
+            --bg-color: #11141A;
+            --text-primary: #ECE7DC;
+            --text-muted: #8E96A4;
+            --accent: #C8443B;
+            --accent-gold: #C2A46D;
+            --surface: rgba(17, 20, 26, 0.78);
+            --surface-solid: #141820;
+            --border-hairline: rgba(236, 231, 220, 0.14);
+            --pill-active-bg: #ECE7DC;
+            --pill-active-text: #11141A;
+            --shadow-dock: 0 18px 44px -10px rgba(0, 0, 0, 0.65);
+        }
+
+        /* ============================================================================
+           2. RESET & FULL-VIEWPORT SCROLL-SCROLL CHROME
+           ============================================================================ */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+                        color 0.55s ease;
+            user-select: none;
+        }
+
+        /* Full-Viewport Retina Canvas */
+        #samuraiCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            cursor: crosshair;
+            display: block;
+            transition: opacity 0.45s ease;
+        }
+
+        /* Subtle Washi Scroll Vignette & Sky Readability Veil */
+        .scroll-vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            transition: background 0.75s ease, box-shadow 0.75s ease;
+        }
+        [data-version="1"] .scroll-vignette {
+            background: radial-gradient(circle at 24% 34%, rgba(239, 232, 216, 0.78) 0%, rgba(239, 232, 216, 0.16) 52%, rgba(24, 23, 21, 0.08) 100%);
+            box-shadow: inset 0 0 90px rgba(82, 68, 46, 0.16);
+        }
+        [data-version="2"] .scroll-vignette {
+            background: radial-gradient(circle at 24% 34%, rgba(229, 213, 190, 0.76) 0%, rgba(229, 213, 190, 0.14) 52%, rgba(45, 25, 16, 0.12) 100%);
+            box-shadow: inset 0 0 100px rgba(72, 42, 22, 0.22);
+        }
+        [data-version="3"] .scroll-vignette {
+            background: radial-gradient(circle at 24% 34%, rgba(17, 20, 26, 0.72) 0%, rgba(17, 20, 26, 0.15) 54%, rgba(5, 7, 10, 0.45) 100%);
+            box-shadow: inset 0 0 110px rgba(0, 0, 0, 0.55);
+        }
+
+        /* Subtle Vertical Japanese Scroll Calligraphy Accent on Right Edge */
+        .vertical-inscription {
+            position: fixed;
+            right: clamp(1rem, 2.6vw, 2.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 4;
+            pointer-events: none;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            font-family: var(--font-display);
+            font-size: 0.78rem;
+            letter-spacing: 0.42em;
+            color: var(--text-muted);
+            opacity: 0.58;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            transition: color 0.55s ease;
+        }
+        @media (min-width: 768px) {
+            .vertical-inscription {
+                display: flex;
+            }
+        }
+        .vertical-inscription::before {
+            content: '';
+            width: 1px;
+            height: 28px;
+            background-color: var(--accent);
+            opacity: 0.65;
+        }
+
+        /* ============================================================================
+           3. MAIN EDITORIAL SHELL (STRICTLY 100dvh, ZERO OVERLAP WITH SAMURAI)
+           ============================================================================ */
+        .app-shell {
+            position: relative;
+            z-index: 5;
+            width: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1.25rem, 4vw, 3.5rem);
+            pointer-events: none;
+        }
+
+        /* Top Minimal Header */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .brand-mark {
+            pointer-events: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: opacity 0.25s ease;
+        }
+        .brand-mark:hover {
+            opacity: 0.75;
+        }
+
+        /* Authentic Crimson Hanko Seal Stamp (侍) */
+        .hanko-stamp {
+            width: 26px;
+            height: 26px;
+            border: 1.5px solid var(--accent);
+            border-radius: 3px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-family: var(--font-display);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0;
+            background: rgba(184, 51, 42, 0.05);
+            box-shadow: inset 0 0 0 0.5px rgba(184, 51, 42, 0.25);
+            transition: transform 0.3s ease, border-color 0.4s ease, color 0.4s ease;
+        }
+        .brand-mark:hover .hanko-stamp {
+            transform: rotate(-3deg);
+        }
+
+        .nav-links {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+        @media (min-width: 640px) {
+            .nav-links {
+                gap: 2.1rem;
+            }
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-body);
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            padding: 0.35rem 0;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        .nav-btn:hover {
+            color: var(--text-primary);
+        }
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 0%;
+            height: 1px;
+            background-color: var(--accent);
+            transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .nav-btn:hover::after {
+            width: 100%;
+        }
+
+        .nav-inquire-pill {
+            padding: 0.45rem 1.1rem;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-hairline);
+            background-color: var(--surface);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: border-color 0.3s ease, transform 0.25s ease;
+        }
+        .nav-inquire-pill:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        /* Editorial Hero Region — Positioned in Upper-Left Open Sky (Clear of Samurai on Right) */
+        .hero-stage {
+            margin-top: clamp(1rem, 4vh, 2.75rem);
+            margin-bottom: auto;
+            max-width: 34rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            transition: opacity 0.32s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @media (min-width: 1024px) {
+            .hero-stage {
+                margin-left: 1.5%;
+                max-width: 36rem;
+            }
+        }
+
+        .hero-stage.is-transitioning {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        .eyebrow-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.1rem;
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .eyebrow-seal-line {
+            width: 24px;
+            height: 1.5px;
+            background-color: var(--accent);
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-weight: 500;
+            font-size: clamp(2.3rem, 5.1vw, 4.35rem);
+            line-height: 1.09;
+            letter-spacing: -0.015em;
+            color: var(--text-primary);
+            margin-bottom: 1.15rem;
+        }
+
+        .hero-title em {
+            font-family: var(--font-serif-italic);
+            font-style: italic;
+            font-weight: 400;
+            color: var(--accent);
+        }
+
+        .hero-subtitle {
+            font-family: var(--font-body);
+            font-weight: 300;
+            font-size: clamp(0.88rem, 1.15vw, 1.02rem);
+            line-height: 1.68;
+            color: var(--text-muted);
+            max-width: 28rem;
+            margin-bottom: 1.85rem;
+        }
+
+        .hero-actions {
+            pointer-events: auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.82rem 1.65rem;
+            border-radius: var(--radius-pill);
+            background-color: var(--pill-active-bg);
+            color: var(--pill-active-text);
+            border: 1px solid var(--pill-active-bg);
+            font-family: var(--font-body);
+            font-size: 0.76rem;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.25s ease, opacity 0.25s ease, background-color 0.45s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            opacity: 0.92;
+        }
+
+        .btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.82rem 1.15rem;
+            border-radius: var(--radius-pill);
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.76rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: color 0.25s ease, border-color 0.25s ease;
+        }
+        .btn-ghost:hover {
+            border-color: var(--border-hairline);
+        }
+        .btn-ghost .arrow {
+            color: var(--accent);
+            transition: transform 0.25s ease;
+        }
+        .btn-ghost:hover .arrow {
+            transform: translateX(3px);
+        }
+
+        /* ============================================================================
+           4. BOTTOM FLOATING DOCK (ATMOSPHERE SWITCHER + WIND/MOTION CONTROLS)
+           ============================================================================ */
+        .bottom-dock {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 1rem;
+        }
+
+        .telemetry-group {
+            display: none;
+            align-items: center;
+            gap: 0.65rem;
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+        @media (min-width: 900px) {
+            .telemetry-group {
+                display: flex;
+            }
+        }
+        .telemetry-sep {
+            opacity: 0.35;
+        }
+
+        /* Center Floating Control Pill */
+        .control-pill {
+            pointer-events: auto;
+            margin: 0 auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.35rem;
+            border-radius: var(--radius-pill);
+            background-color: var(--surface);
+            border: 1px solid var(--border-hairline);
+            box-shadow: var(--shadow-dock);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .control-pill::-webkit-scrollbar {
+            display: none;
+        }
+
+        .version-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.48rem 0.92rem;
+            border-radius: var(--radius-pill);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: var(--font-body);
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background-color 0.35s ease, color 0.35s ease;
+        }
+        .version-tab:hover {
+            color: var(--text-primary);
+        }
+        .version-tab.active {
+            background-color: var(--pill-active-bg);
+            color: var(--pill-active-text);
+        }
+
+        .tab-swatch {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .pill-divider {
+            width: 1px;
+            height: 18px;
+            background-color: var(--border-hairline);
+            margin: 0 0.25rem;
+            flex-shrink: 0;
+        }
+
+        .icon-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color 0.25s ease, color 0.25s ease, transform 0.35s ease;
+        }
+        .icon-action-btn:hover {
+            background-color: var(--border-hairline);
+            color: var(--text-primary);
+        }
+        .icon-action-btn.spin svg {
+            transform: rotate(180deg);
+        }
+
+        .interaction-hint {
+            display: none;
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+        @media (min-width: 900px) {
+            .interaction-hint {
+                display: block;
+            }
+        }
+
+        /* ============================================================================
+           5. SLIDE-OVER SCROLL DRAWER (CHRONICLE / PHILOSOPHY / CONTACT)
+           ============================================================================ */
+        .drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            background-color: rgba(15, 13, 11, 0.36);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+        .drawer-backdrop.open {
+            pointer-events: auto;
+        }
+        .drawer-backdrop.visible {
+            opacity: 1;
+        }
+
+        .drawer-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 28rem;
+            background-color: var(--surface-solid);
+            border-left: 1px solid var(--border-hairline);
+            padding: 2.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transform: translateX(100%);
+            transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                        background-color 0.55s ease;
+            overflow-y: auto;
+            user-select: text;
+        }
+        .drawer-backdrop.visible .drawer-panel {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-hairline);
+            margin-bottom: 2rem;
+        }
+
+        .drawer-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.35rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+        }
+        .drawer-close:hover {
+            color: var(--text-primary);
+        }
+
+        .drawer-heading {
+            font-family: var(--font-display);
+            font-size: 1.85rem;
+            font-weight: 500;
+            line-height: 1.2;
+            margin-bottom: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .drawer-copy {
+            font-size: 0.875rem;
+            line-height: 1.72;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .work-item {
+            padding: 1.15rem 0;
+            border-bottom: 1px solid var(--border-hairline);
+        }
+        .work-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.35rem;
+        }
+        .work-title {
+            font-family: var(--font-display);
+            font-size: 1.12rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .work-year {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            color: var(--accent);
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .form-label {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 0.72rem 0.9rem;
+            border-radius: var(--radius-card);
+            border: 1px solid var(--border-hairline);
+            background: transparent;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.25s ease;
+        }
+        .form-input:focus, .form-textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .drawer-footer {
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-hairline);
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        /* Toast Message Box */
+        .toast-banner {
+            position: fixed;
+            bottom: 5.25rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(14px);
+            z-index: 60;
+            padding: 0.65rem 1.25rem;
+            border-radius: var(--radius-pill);
+            background-color: var(--pill-active-bg);
+            color: var(--pill-active-text);
+            font-size: 0.75rem;
+            letter-spacing: 0.04em;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast-banner.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+    <link rel="stylesheet" href="assets/tool.css">
+</head>
+<body data-version="1">
+
+    <!-- Full-Viewport Retina Ukiyo-e / Sumi-e HTML5 Canvas -->
+    <canvas id="samuraiCanvas"></canvas>
+
+    <!-- Subtle Washi Scroll Vignette & Sky Readability Veil -->
+    <div class="scroll-vignette" aria-hidden="true"></div>
+
+    <!-- Vertical Japanese Scroll Inscription -->
+    <div id="verticalKanji" class="vertical-inscription" aria-hidden="true">
+        静寂と武士道・風林火山
+    </div>
+
+    <!-- Main Full-Screen UI Shell -->
+    <div class="app-shell">
+        <!-- Top Minimal Header -->
+        <header class="top-bar">
+            <a href="#" class="brand-mark" onclick="resetCanvasView(event)">
+                <span class="hanko-stamp" aria-hidden="true">割</span>
+                <span id="brandWordmark">File Spliter</span>
+            </a>
+
+            <nav class="nav-links" aria-label="Primary">
+                <button class="nav-btn" onclick="openDrawer('split')">Split</button>
+                <button class="nav-btn" onclick="openDrawer('join')">Rejoin</button>
+                <button class="nav-inquire-pill" onclick="openDrawer('about')">How it works</button>
+            </nav>
+        </header>
+
+        <!-- Editorial Headline Block (Positioned Cleanly in Open Sky Space) -->
+        <main id="heroStage" class="hero-stage">
+            <div class="eyebrow-row">
+                <span class="eyebrow-seal-line"></span>
+                <span id="heroEyebrow">01 / DAWN MIST &bull; 朝霧</span>
+            </div>
+
+            <h1 id="heroTitle" class="hero-title">
+                Cut Big Files<br>Down to <em>Size</em>.
+            </h1>
+
+            <p id="heroSubtitle" class="hero-subtitle">
+                Split large zips, folders and image sets into parts of the exact size you choose, then rejoin them perfectly. It all happens in your browser, so nothing is ever uploaded.
+            </p>
+
+            <div class="hero-actions">
+                <button class="btn-primary" onclick="openDrawer('split')">
+                    <span id="primaryCtaText">Split a File</span>
+                </button>
+                <button class="btn-ghost" onclick="triggerKatanaSlash(width * 0.65, height * 0.44)">
+                    <span>Draw Katana Wind</span>
+                    <span class="arrow">&rarr;</span>
+                </button>
+            </div>
+        </main>
+
+        <!-- Bottom Floating Dock with Atmospheric Moods, Seed & Motion Controls -->
+        <footer class="bottom-dock">
+            <!-- Left Telemetry -->
+            <div class="telemetry-group">
+                <span id="seedReadout">SCROLL #1603</span>
+                <span class="telemetry-sep">/</span>
+                <span id="coordReadout">WIND 0.50 &times; 0.50</span>
+            </div>
+
+            <!-- Center Mood Switcher & Canvas Controls Pill -->
+            <div class="control-pill" role="toolbar" aria-label="Samurai Atmosphere & Wind Controls">
+                <button class="version-tab active" data-switch="1" title="01 / Dawn Mist (朝霧)">
+                    <span class="tab-swatch" style="background-color: #B8332A;"></span>
+                    <span>01 Dawn Mist</span>
+                </button>
+                <button class="version-tab" data-switch="2" title="02 / Crimson Twilight (黄昏)">
+                    <span class="tab-swatch" style="background-color: #9A6B2F;"></span>
+                    <span>02 Crimson Dusk</span>
+                </button>
+                <button class="version-tab" data-switch="3" title="03 / Moonlit Ronin (月夜)">
+                    <span class="tab-swatch" style="background-color: #8E96A4;"></span>
+                    <span>03 Moonlit Night</span>
+                </button>
+
+                <span class="pill-divider"></span>
+
+                <!-- Regenerate Wind & Mountain Seed Button -->
+                <button id="seedBtn" class="icon-action-btn" title="Regenerate Wind & Landscape Seed" aria-label="Regenerate Wind and Landscape Seed">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                        <path d="M16 16h5v5"/>
+                    </svg>
+                </button>
+
+                <!-- Motion Pause / Play Toggle -->
+                <button id="motionBtn" class="icon-action-btn" title="Pause or Resume Breeze" aria-label="Pause or Resume Breeze">
+                    <svg id="pauseSvg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                    <svg id="playSvg" style="display: none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Right Interaction Hint -->
+            <div id="interactionHint" class="interaction-hint">
+                Glide to stir wind &bull; Click for katana slash
+            </div>
+        </footer>
+    </div>
+
+    <!-- Slide-Over Scroll Drawer (Chronicle / Philosophy / Contact) -->
+    <div id="drawerBackdrop" class="drawer-backdrop" onclick="handleBackdropClick(event)">
+        <aside class="drawer-panel" id="drawerPanel" aria-label="File Spliter workspace">
+            <div>
+                <div class="drawer-header">
+                    <span id="drawerEyebrow" class="drawer-eyebrow">WORKSPACE</span>
+                    <button class="drawer-close" onclick="closeDrawer()" aria-label="Close drawer">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="drawerBody" class="drawer-body"></div>
+            </div>
+
+            <div class="drawer-footer">
+                <span>FILE SPLITER &bull; 割</span>
+                <span>PRIVATE &bull; IN-BROWSER</span>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Tool views (moved into the drawer when opened) -->
+<div id="toolStore" hidden>
+<section id="view-split" class="tool">
+<div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="true">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="false">Rejoin</button></div>
+      <div class="card">
+        <span class="step">Step 1</span><h2>Your files</h2>
+        <div class="tiles">
+          <div class="tile"><small>Files</small><b id="stFiles">0</b></div>
+          <div class="tile"><small>Original</small><b id="stOrig">0 B</b></div>
+          <div class="tile"><small>In zip</small><b id="stPack">0 B</b></div>
+        </div>
+        <div class="pills">
+          <button class="pill primary" id="pickFiles">Add zip or files</button>
+          <button class="pill" id="pickDir">Add folder</button>
+          <button class="pill ghost" id="qSample">Try a sample</button>
+          <button class="pill ghost" id="clearAll">Clear</button>
+        </div>
+        <input type="file" id="fileIn" multiple hidden>
+        <input type="file" id="dirIn" webkitdirectory hidden>
+        <div class="banner" id="sampleBanner" hidden>Showing a generated sample of 120 PNG-sized files. Add your own files to replace it.</div>
+        <div class="note bad" id="srcNote" hidden></div>
+      </div>
+
+      <div class="card">
+        <span class="step">Step 2</span><h2>How to split</h2>
+        <span class="lbl first">Largest size per part</span>
+        <div class="pills" id="presets">
+          <button class="pill" data-preset="10">10 MB</button>
+          <button class="pill" data-preset="20">20 MB</button>
+          <button class="pill" data-preset="25">25 MB</button>
+          <button class="pill" data-preset="50">50 MB</button>
+          <button class="pill" data-preset="100">100 MB</button>
+        </div>
+        <div class="field">
+          <input type="number" id="limitVal" min="1" step="any" value="25" aria-label="Custom size">
+          <div class="pills" data-key="unit">
+            <button class="pill" data-v="KB">KB</button>
+            <button class="pill" data-v="MB">MB</button>
+            <button class="pill" data-v="GB">GB</button>
+          </div>
+        </div>
+        <p class="hint">Decimal sizes (1 MB = 1,000,000 bytes) keep parts safely under a limit. Common ceilings: email 20 MB, chat uploads about 30 MB, GitHub 100 MB. Check your service for its current limit.</p>
+
+        <span class="lbl">Split by</span>
+        <div class="pills" data-key="mode">
+          <button class="pill" data-v="size">Size</button>
+          <button class="pill" data-v="count">File count</button>
+          <button class="pill" data-v="type">File type</button>
+          <button class="pill" data-v="folder">Folder</button>
+        </div>
+        <div class="field" id="countRow" hidden>
+          <input type="number" id="countVal" min="1" step="1" value="50" aria-label="Files per part"><span class="hint">files per part. The size limit is ignored.</span>
+        </div>
+        <p class="hint" id="modeHint">Fills each part up to the size limit.</p>
+
+        <span class="lbl">Packing</span>
+        <div class="pills" data-key="fit">
+          <button class="pill" data-v="false">Keep order</button>
+          <button class="pill" data-v="true">Fewest parts</button>
+        </div>
+        <span class="lbl">Compression</span>
+        <div class="pills" data-key="compress">
+          <button class="pill" data-v="keep">Keep as is</button>
+          <button class="pill" data-v="deflate">Deflate</button>
+        </div>
+        <p class="hint">PNG and JPG are already compressed, so Keep as is is fastest and sizes shown are exact.</p>
+
+        <div class="sw"><span>Cut oversized files into pieces<small>A file bigger than the limit becomes .part001, .part002 …</small></span><button class="switch" role="switch" data-sw="split" aria-checked="true" aria-label="Cut oversized files"></button></div>
+        <div class="sw"><span>Add a manifest to each part<small>Lists where every file lives, with checksums</small></span><button class="switch" role="switch" data-sw="manifest" aria-checked="true" aria-label="Add manifest"></button></div>
+
+        <span class="lbl">Part names</span>
+        <input type="text" id="pattern" value="{name}-part-{n}-of-{total}" aria-label="Part name pattern" spellcheck="false" autocomplete="off">
+        <p class="hint" id="patHint"></p>
+      </div>
+
+      <div class="card">
+        <span class="step">Optional</span><h2>Shrink images first <small>PNG · JPG · WebP</small></h2>
+        <div class="sw"><span>Convert and resize images<small>Fewer parts, smaller files. Originals stay safe until you save.</small></span><button class="switch" role="switch" data-sw="opt" aria-checked="false" aria-label="Optimize images"></button></div>
+        <div id="optBody" hidden>
+          <span class="lbl">Output format</span>
+          <div class="pills" data-key="optfmt">
+            <button class="pill" data-v="webp">WebP</button>
+            <button class="pill" data-v="jpeg">JPG</button>
+            <button class="pill" data-v="png">PNG (resize only)</button>
+          </div>
+          <span class="lbl">Quality <b id="qVal" class="chip">82</b></span>
+          <input type="range" id="optQ" min="40" max="100" value="82" aria-label="Image quality">
+          <span class="lbl">Longest side</span>
+          <div class="pills" data-key="optmax">
+            <button class="pill" data-v="0">Keep size</button>
+            <button class="pill" data-v="2048">2048 px</button>
+            <button class="pill" data-v="1600">1600 px</button>
+            <button class="pill" data-v="1024">1024 px</button>
+          </div>
+          <div class="pills gap">
+            <button class="pill primary" id="optRun">Convert images</button>
+            <button class="pill ghost" id="optReset">Restore originals</button>
+          </div>
+          <div class="bigbar" id="optBarWrap" hidden><i id="optBar"></i></div>
+          <p class="hint" id="optStat" role="status"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="step">Step 3</span><h2>Parts</h2>
+        <div class="note" id="note" role="status" hidden></div>
+        <div id="plan"></div>
+      </div>
+    
+      <div class="actionbar"><div class="bigbar" id="buildBarWrap" hidden><i id="buildBar"></i></div>
+        <div class="row"><span class="summary" id="footSummary">Add files to begin</span>
+        <button class="pill primary" id="buildBtn" disabled>Create parts</button><button class="pill" id="saveAllBtn" disabled>Save all</button></div></div>
+    </section>
+<section id="view-join" class="tool">
+<div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="false">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="true">Rejoin</button></div>
+      <div class="card">
+        <span class="step">Step 1</span><h2>Add the parts</h2>
+        <p class="hint first">Drop every zip made with File Spliter, in any order. Missing parts are flagged before you merge.</p>
+        <div class="pills">
+          <button class="pill primary" id="jPick">Choose part zips</button>
+          <button class="pill ghost" id="jClear">Clear</button>
+        </div>
+        <input type="file" id="jIn" multiple accept=".zip,application/zip" hidden>
+        <div class="note bad" id="jNote" hidden></div>
+      </div>
+      <div class="card">
+        <span class="step">Step 2</span><h2>Parts found</h2>
+        <div id="jSummary"></div>
+      </div>
+      <div class="card">
+        <span class="step">Step 3</span><h2>Check and merge</h2>
+        <p class="hint first">Verify reads every file and compares its checksum. Merge builds one zip with every file restored, including any that were cut into pieces.</p>
+        <div class="bigbar" id="jBarWrap" hidden><i id="jBar"></i></div>
+        <p class="hint" id="jStat" role="status"></p>
+      </div>
+    
+      <div class="actionbar"><div class="row"><span class="summary" id="jFootSummary">Add the part zips</span>
+        <button class="pill" id="jVerify">Verify</button><button class="pill primary" id="jMerge">Merge into one zip</button></div></div>
+    </section>
+</div>
+<div class="dropveil" aria-hidden="true"><div><b>Drop to add</b><span>Zip files, images or a whole folder</span></div></div>
+<noscript><div class="noscript">File Spliter needs JavaScript to split and rejoin files in your browser. Nothing is uploaded, so there is no server fallback.</div></noscript>
+
+    <!-- Subtle Toast Notification -->
+    <div id="toastBanner" class="toast-banner" role="status" aria-live="polite">Done.</div>
+
+    <script src="assets/core.js"></script>
+    <script src="assets/tool.js"></script>
+    <script>
+        /**
+         * ============================================================================
+         * 1. THREE CURATED EDO-PERIOD SAMURAI ATMOSPHERIC MOODS
+         * ============================================================================
+         */
+        const MOODS = {
+            1: {
+                id: 1,
+                brand: 'File Spliter',
+                eyebrow: '01 / DAWN MIST • 朝霧',
+                kanji: '静寂と武士道・朝霧',
+                titleHTML: 'Cut Big Files<br>Down to <em>Size</em>.',
+                subtitle: 'Split large zips, folders and image sets into parts of the exact size you choose, then rejoin them perfectly. It all happens in your browser, so nothing is ever uploaded.',
+                cta: 'Split a File',
+                hint: 'Glide to stir wind • Click for katana slash',
+                palette: {
+                    bg: '#EFE8D8',
+                    sunCore: '201, 74, 56',       // #C94A38 Vermilion Sun Disc
+                    sunHalo: '214, 132, 92',
+                    mountainFar: '175, 165, 148',
+                    mountainMid: '112, 104, 92',
+                    mountainNear: '46, 43, 39',
+                    ink: '24, 23, 21',            // #181715 Sumi Charcoal Ink
+                    mist: '244, 239, 228',
+                    petalPrimary: '219, 134, 138',// Soft Sakura Pink
+                    petalAlt: '184, 51, 42',      // Vermilion Crimson Petal
+                    gold: '166, 132, 70',         // #A68446 Oxidized Gold
+                    slashInk: '24, 23, 21'
+                }
+            },
+            2: {
+                id: 2,
+                brand: 'File Spliter',
+                eyebrow: '02 / CRIMSON TWILIGHT • 黄昏',
+                kanji: '落葉と刀影・黄昏',
+                titleHTML: 'Every Part<br>Perfectly <em>Measured</em>.',
+                subtitle: 'Pick a size from 10 MB to 100 MB, preview every part before building, and save them one by one or all at once. Your files never leave this page.',
+                cta: 'Start Splitting',
+                hint: 'Glide to swirl leaves • Click for ink slash',
+                palette: {
+                    bg: '#E5D5BE',
+                    sunCore: '168, 42, 32',       // Deep Burnt Crimson Sun
+                    sunHalo: '196, 108, 56',
+                    mountainFar: '166, 138, 112',
+                    mountainMid: '108, 76, 58',
+                    mountainNear: '48, 34, 28',
+                    ink: '28, 21, 18',
+                    mist: '238, 222, 198',
+                    petalPrimary: '176, 54, 36',  // Autumn Momiji Maple Red
+                    petalAlt: '184, 118, 46',     // Ochre Maple Leaf
+                    gold: '154, 107, 47',
+                    slashInk: '158, 38, 30'
+                }
+            },
+            3: {
+                id: 3,
+                brand: 'File Spliter',
+                eyebrow: '03 / MOONLIT RONIN • 月夜',
+                kanji: '月下の孤剣・静寂',
+                titleHTML: 'Rejoin Them,<br>Byte for <em>Byte</em>.',
+                subtitle: 'Verify checksums, spot missing parts and merge everything back into one zip. Large files cut into pieces are rebuilt automatically.',
+                cta: 'Rejoin Parts',
+                hint: 'Glide through mist • Click for silver blade arc',
+                palette: {
+                    bg: '#11141A',
+                    sunCore: '234, 236, 240',     // Pale Silver Full Moon
+                    sunHalo: '132, 152, 184',
+                    mountainFar: '34, 42, 56',
+                    mountainMid: '23, 28, 38',
+                    mountainNear: '12, 15, 21',
+                    ink: '7, 9, 13',
+                    mist: '148, 168, 196',
+                    petalPrimary: '218, 224, 232',// Pale Moonlit Blossom
+                    petalAlt: '214, 174, 102',    // Warm Firefly / Lantern Ember
+                    gold: '194, 164, 109',
+                    slashInk: '236, 231, 220'
+                }
+            }
+        };
+
+        /**
+         * ============================================================================
+         * 2. CANVAS STATE, DETERMINISTIC PRNG & SCENE ENTITIES
+         * ============================================================================
+         */
+        const canvas = document.getElementById('samuraiCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = 0;
+        let height = 0;
+        let dpr = 1;
+        let time = 0;
+        let isPaused = false;
+        let activeVersion = 1;
+        let currentSeed = 1603;
+
+        const pointer = {
+            x: 0,
+            y: 0,
+            targetX: 0,
+            targetY: 0,
+            vx: 0,
+            vy: 0,
+            active: false
+        };
+
+        let washiPattern = null;
+        let mountainLayers = [];
+        let mistBands = [];
+        let petals = [];
+        let katanaSlashes = [];
+        let distantBirds = [];
+
+        /**
+         * Mulberry32 Deterministic PRNG for repeatable woodblock landscape compositions
+         */
+        function createPRNG(seed) {
+            let a = seed >>> 0;
+            return function () {
+                a |= 0;
+                a = (a + 0x6D2B79F5) | 0;
+                let t = Math.imul(a ^ (a >>> 15), 1 | a);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        /**
+         * Generate Procedural Organic Washi Paper Fiber & Mineral Texture
+         */
+        function createWashiPaperTexture() {
+            const off = document.createElement('canvas');
+            off.width = 160;
+            off.height = 160;
+            const octx = off.getContext('2d');
+            const img = octx.createImageData(160, 160);
+            const data = img.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = Math.random();
+                const isMineralSpeck = r > 0.968;
+                data[i] = isMineralSpeck ? 115 : 252;
+                data[i + 1] = isMineralSpeck ? 102 : 246;
+                data[i + 2] = isMineralSpeck ? 84 : 232;
+                data[i + 3] = isMineralSpeck ? 18 : 8;
+            }
+            octx.putImageData(img, 0, 0);
+
+            // Subtle mulberry paper silk fibers
+            octx.strokeStyle = 'rgba(130, 114, 90, 0.06)';
+            octx.lineWidth = 0.6;
+            for (let f = 0; f < 18; f++) {
+                const fx = Math.random() * 160;
+                const fy = Math.random() * 160;
+                octx.beginPath();
+                octx.moveTo(fx, fy);
+                octx.quadraticCurveTo(
+                    fx + (Math.random() - 0.5) * 24,
+                    fy + (Math.random() - 0.5) * 24,
+                    fx + (Math.random() - 0.5) * 32,
+                    fy + (Math.random() - 0.5) * 32
+                );
+                octx.stroke();
+            }
+
+            washiPattern = ctx.createPattern(off, 'repeat');
+        }
+
+        /**
+         * Build Procedural Sumi-e Mountains, Mist Ribbons, Sakura Petals & Birds
+         */
+        function buildLandscape() {
+            const rand = createPRNG(currentSeed);
+            const w = width || 1200;
+            const h = height || 800;
+
+            // 1. Three Parallax Sumi-e Ink-Wash Mountain Ridges
+            mountainLayers = [];
+            const layerSpecs = [
+                { baseRatio: 0.64, amp: h * 0.16, parallax: 14, key: 'mountainFar', alpha: 0.42 },
+                { baseRatio: 0.72, amp: h * 0.13, parallax: 26, key: 'mountainMid', alpha: 0.66 },
+                { baseRatio: 0.81, amp: h * 0.09, parallax: 40, key: 'mountainNear', alpha: 0.88 }
+            ];
+
+            for (let l = 0; l < layerSpecs.length; l++) {
+                const spec = layerSpecs[l];
+                const points = [];
+                const segments = 24;
+                const phase1 = rand() * Math.PI * 2;
+                const phase2 = rand() * Math.PI * 2;
+                // Iconic distant Mt. Fuji-like volcanic peak bias on far ridge
+                const peakCenter = 0.42 + (rand() - 0.5) * 0.14;
+
+                for (let i = 0; i <= segments; i++) {
+                    const t = i / segments;
+                    const x = -80 + t * (w + 160);
+                    let ridge =
+                        Math.sin(t * Math.PI * 2.3 + phase1) * 0.45 +
+                        Math.sin(t * Math.PI * 5.1 + phase2) * 0.22 +
+                        (rand() - 0.5) * 0.12;
+
+                    if (l === 0) {
+                        // Graceful conical mountain silhouette in background
+                        const distPeak = Math.abs(t - peakCenter);
+                        const fujiBoost = Math.max(0, 1 - distPeak / 0.22);
+                        ridge += Math.pow(fujiBoost, 1.55) * 1.15;
+                    }
+
+                    const y = h * spec.baseRatio - Math.max(-0.2, ridge) * spec.amp;
+                    points.push({ x, y });
+                }
+
+                mountainLayers.push({
+                    points,
+                    parallax: spec.parallax,
+                    colorKey: spec.key,
+                    alpha: spec.alpha
+                });
+            }
+
+            // 2. Drifting Valley Mist & Fog Ribbons
+            mistBands = [];
+            for (let m = 0; m < 6; m++) {
+                mistBands.push({
+                    yRatio: 0.58 + m * 0.065,
+                    height: 36 + rand() * 48,
+                    speed: (0.14 + rand() * 0.22) * (m % 2 === 0 ? 1 : -0.7),
+                    phase: rand() * Math.PI * 2,
+                    alpha: 0.16 + rand() * 0.18
+                });
+            }
+
+            // 3. Drifting Sakura Blossoms / Autumn Maple Leaves / Moonlit Embers
+            petals = [];
+            const count = w < 640 ? 34 : 58;
+            for (let p = 0; p < count; p++) {
+                petals.push(createSinglePetal(rand, w, h, true));
+            }
+
+            // 4. Distant Minimal Ink Brush Cranes / Birds in Sky
+            distantBirds = [];
+            const birdCount = 4;
+            const flockX = w * (0.44 + rand() * 0.14);
+            const flockY = h * (0.22 + rand() * 0.08);
+            for (let b = 0; b < birdCount; b++) {
+                distantBirds.push({
+                    ox: flockX + b * 22 + (rand() - 0.5) * 10,
+                    oy: flockY + Math.abs(b - 1.5) * 9,
+                    wingPhase: rand() * Math.PI * 2,
+                    scale: 0.75 + rand() * 0.35
+                });
+            }
+        }
+
+        function createSinglePetal(randFn, w, h, scatterAcrossScreen) {
+            return {
+                x: scatterAcrossScreen ? randFn() * w : (randFn() > 0.3 ? -20 : randFn() * w),
+                y: scatterAcrossScreen ? randFn() * h : -20 - randFn() * 80,
+                vx: 0.45 + randFn() * 0.95,
+                vy: 0.32 + randFn() * 0.65,
+                size: 3.5 + randFn() * 4.5,
+                angle: randFn() * Math.PI * 2,
+                spin: (randFn() - 0.5) * 0.045,
+                flutterPhase: randFn() * Math.PI * 2,
+                isAltColor: randFn() > 0.62
+            };
+        }
+
+        /**
+         * High-DPI Retina Canvas Resize
+         */
+        function resizeCanvas() {
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+            width = window.innerWidth;
+            height = window.innerHeight;
+
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            if (!pointer.active) {
+                pointer.x = width * 0.5;
+                pointer.y = height * 0.45;
+                pointer.targetX = width * 0.5;
+                pointer.targetY = height * 0.45;
+            }
+
+            buildLandscape();
+            if (isPaused) renderFrame();
+        }
+
+        /**
+         * ============================================================================
+         * 3. RENDER LAYER 1: WASHI PAPER, RISING SUN / FULL MOON & INK MOUNTAINS
+         * ============================================================================
+         */
+        function renderAtmosphericBackdrop() {
+            const pal = MOODS[activeVersion].palette;
+            const normX = (pointer.x / Math.max(width, 1)) - 0.5;
+            const normY = (pointer.y / Math.max(height, 1)) - 0.5;
+
+            // 1. Subtle Washi Paper Grain Overlay
+            if (washiPattern) {
+                ctx.fillStyle = washiPattern;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            // 2. Iconic Ukiyo-e Sun Disc (or Silver Moon in Edition 03)
+            const sunX = width * 0.60 - normX * 14;
+            const sunY = height * 0.36 - normY * 10;
+            const sunRadius = Math.min(width, height) * 0.145;
+
+            // Soft atmospheric halo
+            const halo = ctx.createRadialGradient(sunX, sunY, sunRadius * 0.4, sunX, sunY, sunRadius * 2.4);
+            halo.addColorStop(0, `rgba(${pal.sunHalo}, ${activeVersion === 3 ? 0.22 : 0.18})`);
+            halo.addColorStop(1, `rgba(${pal.sunHalo}, 0)`);
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunRadius * 2.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Crisp Woodblock Sun / Moon Disc
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${pal.sunCore}, ${activeVersion === 3 ? 0.86 : 0.72})`;
+            ctx.fill();
+
+            // Subtle passing mist band across the lower edge of the sun disc
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+            ctx.clip();
+            const bandY = sunY + sunRadius * 0.28 + Math.sin(time * 0.4) * 5;
+            ctx.fillStyle = `rgba(${pal.mist}, 0.26)`;
+            ctx.fillRect(sunX - sunRadius, bandY, sunRadius * 2, sunRadius * 0.22);
+            ctx.restore();
+
+            // 3. Distant Minimal Ink-Wash Birds
+            ctx.strokeStyle = `rgba(${pal.ink}, 0.45)`;
+            ctx.lineWidth = 1.2;
+            ctx.lineCap = 'round';
+            for (let i = 0; i < distantBirds.length; i++) {
+                const b = distantBirds[i];
+                const bx = b.ox + Math.sin(time * 0.35 + i) * 14 - normX * 18;
+                const by = b.oy + Math.cos(time * 0.45 + i) * 5 - normY * 12;
+                const flap = Math.sin(time * 3.2 + b.wingPhase) * 3.2 * b.scale;
+                const span = 7.5 * b.scale;
+
+                ctx.beginPath();
+                ctx.moveTo(bx - span, by - flap);
+                ctx.quadraticCurveTo(bx - span * 0.4, by - 3 * b.scale, bx, by);
+                ctx.quadraticCurveTo(bx + span * 0.4, by - 3 * b.scale, bx + span, by - flap);
+                ctx.stroke();
+            }
+
+            // 4. Multi-Layered Sumi-e Ink-Wash Mountain Ridges + Valley Mist
+            for (let l = 0; l < mountainLayers.length; l++) {
+                const layer = mountainLayers[l];
+                const pts = layer.points;
+                const shiftX = -normX * layer.parallax;
+                const shiftY = -normY * (layer.parallax * 0.35);
+                const rgb = pal[layer.colorKey];
+
+                // Soft ink-wash vertical gradient so mountain bases dissolve into valley mist
+                const grad = ctx.createLinearGradient(0, height * 0.45, 0, height * 0.92);
+                grad.addColorStop(0, `rgba(${rgb}, ${layer.alpha})`);
+                grad.addColorStop(0.78, `rgba(${rgb}, ${(layer.alpha * 0.65).toFixed(3)})`);
+                grad.addColorStop(1, `rgba(${rgb}, 0.05)`);
+
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x + shiftX, height + 20);
+                ctx.lineTo(pts[0].x + shiftX, pts[0].y + shiftY);
+
+                for (let i = 1; i < pts.length - 1; i++) {
+                    const xc = (pts[i].x + pts[i + 1].x) * 0.5 + shiftX;
+                    const yc = (pts[i].y + pts[i + 1].y) * 0.5 + shiftY;
+                    ctx.quadraticCurveTo(pts[i].x + shiftX, pts[i].y + shiftY, xc, yc);
+                }
+                const last = pts[pts.length - 1];
+                ctx.lineTo(last.x + shiftX, last.y + shiftY);
+                ctx.lineTo(last.x + shiftX, height + 20);
+                ctx.closePath();
+
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Insert drifting valley mist ribbon between mountain ridges
+                if (l < 2) {
+                    const mist = mistBands[l * 2];
+                    const mistY = height * mist.yRatio + Math.sin(time * 0.3 + mist.phase) * 10 + shiftY * 0.5;
+                    const mistGrad = ctx.createLinearGradient(0, mistY - mist.height, 0, mistY + mist.height);
+                    mistGrad.addColorStop(0, `rgba(${pal.mist}, 0)`);
+                    mistGrad.addColorStop(0.5, `rgba(${pal.mist}, ${mist.alpha})`);
+                    mistGrad.addColorStop(1, `rgba(${pal.mist}, 0)`);
+
+                    ctx.fillStyle = mistGrad;
+                    ctx.fillRect(0, mistY - mist.height, width, mist.height * 2);
+                }
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 4. RENDER LAYER 2: LONE SAMURAI ON CLIFF LEDGE & GNARLED PINE (MATSU)
+         * Calligraphic Sumi-e brush silhouette with wind-animated haori cloak & pine
+         * ============================================================================
+         */
+        function renderSamuraiAndCliff() {
+            const pal = MOODS[activeVersion].palette;
+            const normX = (pointer.x / Math.max(width, 1)) - 0.5;
+            const normY = (pointer.y / Math.max(height, 1)) - 0.5;
+
+            // Foreground parallax anchor (positioned harmoniously on right-of-center cliff)
+            const fgShiftX = -normX * 52;
+            const fgShiftY = -normY * 18;
+
+            const cliffAnchorX = (width < 640 ? width * 0.72 : width * 0.74) + fgShiftX;
+            const cliffTopY = height * 0.77 + fgShiftY;
+            const scale = Math.max(0.72, Math.min(1.18, Math.min(width, height) / 760));
+
+            // Breeze sway harmonic influenced by pointer velocity
+            const windGust = Math.sin(time * 1.9) * 0.6 + Math.sin(time * 3.4) * 0.4 + pointer.vx * 0.04;
+
+            ctx.save();
+
+            // ------------------------------------------------------------------
+            // A. Calligraphic Sumi-e Cliff Ledge & Brushwork Horizon
+            // ------------------------------------------------------------------
+            ctx.beginPath();
+            ctx.moveTo(width * 0.36 + fgShiftX, height + 20);
+            ctx.quadraticCurveTo(
+                width * 0.48 + fgShiftX, cliffTopY + 55 * scale,
+                cliffAnchorX - 88 * scale, cliffTopY + 12 * scale
+            );
+            ctx.lineTo(cliffAnchorX - 38 * scale, cliffTopY - 2 * scale);
+            ctx.quadraticCurveTo(
+                cliffAnchorX + 25 * scale, cliffTopY - 4 * scale,
+                cliffAnchorX + 75 * scale, cliffTopY + 10 * scale
+            );
+            ctx.lineTo(width + 120, cliffTopY + 38 * scale);
+            ctx.lineTo(width + 120, height + 20);
+            ctx.closePath();
+
+            const cliffGrad = ctx.createLinearGradient(0, cliffTopY - 10, 0, height);
+            cliffGrad.addColorStop(0, `rgba(${pal.ink}, 0.96)`);
+            cliffGrad.addColorStop(1, `rgba(${pal.ink}, 1)`);
+            ctx.fillStyle = cliffGrad;
+            ctx.fill();
+
+            // Crisp calligraphic Sumi-e ink brush stroke along the cliff rim
+            ctx.beginPath();
+            ctx.moveTo(cliffAnchorX - 96 * scale, cliffTopY + 14 * scale);
+            ctx.quadraticCurveTo(
+                cliffAnchorX - 30 * scale, cliffTopY - 4 * scale,
+                cliffAnchorX + 78 * scale, cliffTopY + 10 * scale
+            );
+            ctx.strokeStyle = `rgba(${pal.ink}, 0.85)`;
+            ctx.lineWidth = 3.2 * scale;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // ------------------------------------------------------------------
+            // B. Gnarled Wind-Bent Japanese Pine Branch (Matsu) Framing Right Edge
+            // ------------------------------------------------------------------
+            const pineBaseX = cliffAnchorX + 135 * scale;
+            const pineBaseY = cliffTopY + 28 * scale;
+            const pineTipX = cliffAnchorX + 26 * scale + windGust * 4.5 * scale;
+            const pineTipY = cliffTopY - 148 * scale + windGust * 2 * scale;
+
+            ctx.strokeStyle = `rgba(${pal.ink}, 0.94)`;
+            ctx.lineCap = 'round';
+
+            // Main gnarled trunk curving inward
+            ctx.beginPath();
+            ctx.moveTo(pineBaseX, pineBaseY);
+            ctx.bezierCurveTo(
+                pineBaseX - 24 * scale, cliffTopY - 58 * scale,
+                pineBaseX - 92 * scale, cliffTopY - 108 * scale,
+                pineTipX, pineTipY
+            );
+            ctx.lineWidth = 8.5 * scale;
+            ctx.stroke();
+
+            // Secondary lower pine bough
+            const boughTipX = cliffAnchorX + 54 * scale + windGust * 5.5 * scale;
+            const boughTipY = cliffTopY - 96 * scale;
+            ctx.beginPath();
+            ctx.moveTo(pineBaseX - 34 * scale, cliffTopY - 62 * scale);
+            ctx.quadraticCurveTo(
+                pineBaseX - 66 * scale, cliffTopY - 88 * scale,
+                boughTipX, boughTipY
+            );
+            ctx.lineWidth = 4.2 * scale;
+            ctx.stroke();
+
+            // Ink-wash pine needle clusters (traditional Sumi-e fan pads)
+            const needlePads = [
+                { x: pineTipX, y: pineTipY, rx: 36 * scale, ry: 11 * scale },
+                { x: pineTipX + 34 * scale, y: pineTipY - 14 * scale, rx: 32 * scale, ry: 10 * scale },
+                { x: boughTipX, y: boughTipY, rx: 30 * scale, ry: 9.5 * scale }
+            ];
+            for (let n = 0; n < needlePads.length; n++) {
+                const pad = needlePads[n];
+                ctx.beginPath();
+                ctx.ellipse(pad.x, pad.y, pad.rx, pad.ry, -0.08, Math.PI, 0);
+                ctx.fillStyle = `rgba(${pal.ink}, 0.90)`;
+                ctx.fill();
+            }
+
+            // ------------------------------------------------------------------
+            // C. Lone Samurai / Ronin Silhouette Standing Calmly on Cliff Ledge
+            // ------------------------------------------------------------------
+            const sx = cliffAnchorX - 18 * scale;
+            const sy = cliffTopY - 1 * scale;
+            const cloakFlutter = windGust * 6.5 * scale;
+
+            ctx.fillStyle = `rgba(${pal.ink}, 0.97)`;
+            ctx.strokeStyle = `rgba(${pal.ink}, 0.97)`;
+
+            // 1. Wide Hakama Trousers (planted grounded stance facing left toward the valley)
+            ctx.beginPath();
+            ctx.moveTo(sx - 7 * scale, sy - 54 * scale);  // Waist front
+            ctx.lineTo(sx - 18 * scale, sy);              // Front foot
+            ctx.lineTo(sx - 5 * scale, sy);
+            ctx.lineTo(sx + 1 * scale, sy - 26 * scale);  // Inner crease
+            ctx.lineTo(sx + 8 * scale, sy);
+            ctx.lineTo(sx + 21 * scale, sy + 1 * scale);  // Back foot
+            ctx.lineTo(sx + 11 * scale, sy - 54 * scale); // Waist back
+            ctx.closePath();
+            ctx.fill();
+
+            // 2. Flowing Windswept Haori Cloak / Jinbaori Cape
+            ctx.beginPath();
+            ctx.moveTo(sx - 6 * scale, sy - 86 * scale);  // Collar front
+            ctx.lineTo(sx + 7 * scale, sy - 86 * scale);  // Shoulder back
+            ctx.bezierCurveTo(
+                sx + 22 * scale + cloakFlutter * 0.5, sy - 68 * scale,
+                sx + 34 * scale + cloakFlutter, sy - 46 * scale,
+                sx + 40 * scale + cloakFlutter * 1.25, sy - 24 * scale
+            );
+            ctx.quadraticCurveTo(
+                sx + 22 * scale + cloakFlutter * 0.7, sy - 21 * scale,
+                sx + 9 * scale, sy - 30 * scale
+            );
+            ctx.lineTo(sx - 9 * scale, sy - 46 * scale);
+            ctx.closePath();
+            ctx.fill();
+
+            // 3. Torso & Forward-Gazing Head + Topknot (Chonmage) / Ronin Straw Kasa Accent
+            // Head & Neck
+            ctx.beginPath();
+            ctx.arc(sx - 2 * scale, sy - 95 * scale, 6.2 * scale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Traditional Samurai Topknot (Chonmage)
+            ctx.beginPath();
+            ctx.moveTo(sx + 1 * scale, sy - 100 * scale);
+            ctx.quadraticCurveTo(sx + 6 * scale, sy - 105 * scale, sx + 2 * scale, sy - 107 * scale);
+            ctx.lineWidth = 2.6 * scale;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Flowing Headband Ribbon (Hachimaki) fluttering in the breeze
+            ctx.beginPath();
+            ctx.moveTo(sx + 3 * scale, sy - 96 * scale);
+            ctx.quadraticCurveTo(
+                sx + 16 * scale + cloakFlutter * 0.6, sy - 99 * scale + Math.sin(time * 4.5) * 2 * scale,
+                sx + 26 * scale + cloakFlutter, sy - 93 * scale + Math.cos(time * 4.5) * 2.5 * scale
+            );
+            ctx.lineWidth = 1.6 * scale;
+            ctx.stroke();
+
+            // 4. Katana & Wakizashi Scabbards (Saya) at Waist
+            // Long Katana curving gracefully backward & upward
+            ctx.beginPath();
+            ctx.moveTo(sx - 13 * scale, sy - 56 * scale); // Tsuka (hilt) forward
+            ctx.quadraticCurveTo(
+                sx + 8 * scale, sy - 53 * scale,
+                sx + 34 * scale + cloakFlutter * 0.15, sy - 63 * scale // Kojiri (scabbard tip)
+            );
+            ctx.lineWidth = 2.6 * scale;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Subtle Oxidized Gold Tsuba (sword guard) glint
+            ctx.beginPath();
+            ctx.arc(sx - 7 * scale, sy - 55.5 * scale, 2.1 * scale, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${pal.gold}, 0.9)`;
+            ctx.fill();
+
+            // 5. Foreground Silhouette Reeds / Susuki Grass Swaying on Cliff Edge
+            ctx.strokeStyle = `rgba(${pal.ink}, 0.92)`;
+            for (let g = 0; g < 7; g++) {
+                const gx = cliffAnchorX - 68 * scale + g * 8 * scale;
+                const gy = cliffTopY + 6 * scale - (g % 3) * 2 * scale;
+                const gh = (16 + (g % 4) * 6) * scale;
+                const bend = (6 + windGust * 4.5) * scale;
+
+                ctx.beginPath();
+                ctx.moveTo(gx, gy);
+                ctx.quadraticCurveTo(gx + bend * 0.4, gy - gh * 0.6, gx + bend, gy - gh);
+                ctx.lineWidth = 1.15 * scale;
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * ============================================================================
+         * 5. RENDER LAYER 3: DRIFTING SAKURA PETALS, MAPLE LEAVES & KATANA WIND SLASH
+         * ============================================================================
+         */
+        function renderPetalsAndWind() {
+            const pal = MOODS[activeVersion].palette;
+
+            for (let i = 0; i < petals.length; i++) {
+                const p = petals[i];
+
+                if (!isPaused) {
+                    // Base gentle autumn wind + organic flutter
+                    const flutter = Math.sin(time * 2.2 + p.flutterPhase) * 0.45;
+                    p.x += p.vx + flutter * 0.4 + pointer.vx * 0.015;
+                    p.y += p.vy + Math.cos(time * 1.8 + p.flutterPhase) * 0.25;
+                    p.angle += p.spin;
+
+                    // Cursor air current swirl interaction
+                    const dx = p.x - pointer.x;
+                    const dy = p.y - pointer.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < 170 && dist > 1) {
+                        const force = (1 - dist / 170) * 1.8;
+                        // Tangential vortex + gentle push
+                        p.x += (dx / dist) * force * 0.7 - (dy / dist) * force * 0.85;
+                        p.y += (dy / dist) * force * 0.5 + (dx / dist) * force * 0.85;
+                        p.angle += 0.08 * force;
+                    }
+
+                    // Wrap smoothly around screen edges
+                    if (p.x > width + 30) {
+                        p.x = -20;
+                        p.y = Math.random() * height * 0.85;
+                    }
+                    if (p.y > height + 25) {
+                        p.y = -20;
+                        p.x = Math.random() * width;
+                    }
+                }
+
+                // Draw calligraphic Sakura petal / Maple leaf / Moonlit ember
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                const scaleY = 0.55 + 0.45 * Math.abs(Math.sin(time * 2.5 + p.flutterPhase));
+                ctx.scale(1, scaleY);
+
+                const rgb = p.isAltColor ? pal.petalAlt : pal.petalPrimary;
+                const alpha = activeVersion === 3 && p.isAltColor
+                    ? 0.65 + 0.35 * Math.sin(time * 4 + p.flutterPhase) // Glowing moonlit ember
+                    : 0.78;
+
+                ctx.fillStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
+
+                if (activeVersion === 3 && p.isAltColor) {
+                    // Glowing golden lantern ember in moonlit mode
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.size * 0.45, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Tapered woodblock Sakura / Momiji petal silhouette
+                    ctx.beginPath();
+                    ctx.moveTo(-p.size, 0);
+                    ctx.quadraticCurveTo(0, -p.size * 0.75, p.size, 0);
+                    ctx.quadraticCurveTo(0, p.size * 0.75, -p.size, 0);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        /**
+         * Trigger & Render Fleeting Calligraphic Sumi-e Katana Wind Slash (Iaijutsu)
+         */
+        function triggerKatanaSlash(x, y) {
+            const baseAngle = -0.38 + (Math.random() - 0.5) * 0.55;
+            katanaSlashes.push({
+                x,
+                y,
+                angle: baseAngle,
+                length: Math.min(width, height) * (0.28 + Math.random() * 0.14),
+                curve: (Math.random() > 0.5 ? 1 : -1) * (28 + Math.random() * 26),
+                progress: 0
+            });
+
+            // Scatter nearby petals in a gust of wind
+            for (let i = 0; i < petals.length; i++) {
+                const p = petals[i];
+                const dx = p.x - x;
+                const dy = p.y - y;
+                const d = Math.hypot(dx, dy);
+                if (d < 220 && d > 1) {
+                    p.x += (dx / d) * 32;
+                    p.y += (dy / d) * 32 - 12;
+                    p.spin = (Math.random() - 0.5) * 0.22;
+                }
+            }
+
+            if (isPaused) renderFrame();
+        }
+
+        function renderKatanaSlashes() {
+            const pal = MOODS[activeVersion].palette;
+
+            for (let i = katanaSlashes.length - 1; i >= 0; i--) {
+                const s = katanaSlashes[i];
+                if (!isPaused) {
+                    s.progress += 0.024;
+                }
+                if (s.progress >= 1) {
+                    katanaSlashes.splice(i, 1);
+                    continue;
+                }
+
+                // Fast whip-draw in first 25%, graceful Sumi ink mist fade in remaining 75%
+                const drawT = Math.min(1, s.progress * 3.8);
+                const fadeAlpha = Math.pow(1 - s.progress, 1.45);
+
+                ctx.save();
+                ctx.translate(s.x, s.y);
+                ctx.rotate(s.angle);
+
+                const halfLen = s.length * 0.5;
+                const startX = -halfLen;
+                const endX = -halfLen + s.length * drawT;
+                const ctrlX = (startX + endX) * 0.5;
+                const ctrlY = -s.curve * drawT;
+
+                // Tapered Sumi-e calligraphic crescent stroke
+                ctx.beginPath();
+                ctx.moveTo(startX, 0);
+                ctx.quadraticCurveTo(ctrlX, ctrlY - 3.6 * fadeAlpha, endX, 0);
+                ctx.quadraticCurveTo(ctrlX, ctrlY + 1.8 * fadeAlpha, startX, 0);
+                ctx.fillStyle = `rgba(${pal.slashInk}, ${(fadeAlpha * 0.72).toFixed(3)})`;
+                ctx.fill();
+
+                // Secondary fine wind-filament trail
+                ctx.beginPath();
+                ctx.moveTo(startX + 18, 6);
+                ctx.quadraticCurveTo(ctrlX + 12, ctrlY + 12, endX - 10, 4);
+                ctx.strokeStyle = `rgba(${pal.accent || pal.gold}, ${(fadeAlpha * 0.35).toFixed(3)})`;
+                ctx.lineWidth = 0.9;
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        /**
+         * Master Render Frame
+         */
+        function renderFrame() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Smooth spring pointer velocity & position tracking
+            const prevX = pointer.x;
+            const prevY = pointer.y;
+            pointer.x += (pointer.targetX - pointer.x) * 0.075;
+            pointer.y += (pointer.targetY - pointer.y) * 0.075;
+            pointer.vx = pointer.x - prevX;
+            pointer.vy = pointer.y - prevY;
+
+            renderAtmosphericBackdrop();
+            renderSamuraiAndCliff();
+            renderPetalsAndWind();
+            renderKatanaSlashes();
+        }
+
+        /**
+         * 60fps Animation Loop
+         */
+        function animate() {
+            if (!isPaused) {
+                time += 0.015;
+            }
+            renderFrame();
+            requestAnimationFrame(animate);
+        }
+
+        /**
+         * ============================================================================
+         * 6. MOOD SWITCHING, SEED REGENERATION & WIND CONTROLS
+         * ============================================================================
+         */
+        const brandWordmark = document.getElementById('brandWordmark');
+        const verticalKanji = document.getElementById('verticalKanji');
+        const heroStage = document.getElementById('heroStage');
+        const heroEyebrow = document.getElementById('heroEyebrow');
+        const heroTitle = document.getElementById('heroTitle');
+        const heroSubtitle = document.getElementById('heroSubtitle');
+        const primaryCtaText = document.getElementById('primaryCtaText');
+        const interactionHint = document.getElementById('interactionHint');
+        const versionTabs = document.querySelectorAll('.version-tab');
+
+        function switchMood(moodId) {
+            if (activeVersion === moodId) return;
+            activeVersion = moodId;
+            const mData = MOODS[moodId];
+
+            versionTabs.forEach((tab) => {
+                tab.classList.toggle('active', Number(tab.dataset.switch) === moodId);
+            });
+
+            heroStage.classList.add('is-transitioning');
+            canvas.style.opacity = '0.25';
+
+            setTimeout(() => {
+                document.body.setAttribute('data-version', String(moodId));
+                brandWordmark.textContent = mData.brand;
+                verticalKanji.textContent = mData.kanji;
+                heroEyebrow.textContent = mData.eyebrow;
+                heroTitle.innerHTML = mData.titleHTML;
+                heroSubtitle.textContent = mData.subtitle;
+                primaryCtaText.textContent = mData.cta;
+                interactionHint.textContent = mData.hint;
+
+                heroStage.classList.remove('is-transitioning');
+                canvas.style.opacity = '1';
+                triggerKatanaSlash(width * 0.56, height * 0.45);
+                if (isPaused) renderFrame();
+            }, 220);
+        }
+
+        versionTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                switchMood(Number(tab.dataset.switch));
+            });
+        });
+
+        // Regenerate Mountain Ridge & Wind Seed
+        const seedBtn = document.getElementById('seedBtn');
+        const seedReadout = document.getElementById('seedReadout');
+        seedBtn.addEventListener('click', () => {
+            currentSeed = Math.floor(1000 + Math.random() * 8999);
+            seedReadout.textContent = `SCROLL #${currentSeed}`;
+            seedBtn.classList.add('spin');
+            setTimeout(() => seedBtn.classList.remove('spin'), 380);
+            buildLandscape();
+            triggerKatanaSlash(width * 0.54, height * 0.48);
+            if (isPaused) renderFrame();
+        });
+
+        // Pause / Resume Breeze Animation
+        const motionBtn = document.getElementById('motionBtn');
+        const pauseSvg = document.getElementById('pauseSvg');
+        const playSvg = document.getElementById('playSvg');
+        motionBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseSvg.style.display = isPaused ? 'none' : 'block';
+            playSvg.style.display = isPaused ? 'block' : 'none';
+        });
+
+        function resetCanvasView(e) {
+            e.preventDefault();
+            pointer.targetX = width * 0.5;
+            pointer.targetY = height * 0.45;
+            triggerKatanaSlash(width * 0.58, height * 0.44);
+        }
+
+        /**
+         * ============================================================================
+         * 7. POINTER & TOUCH INTERACTION HANDLERS
+         * ============================================================================
+         */
+        const coordReadout = document.getElementById('coordReadout');
+
+        function updatePointer(clientX, clientY) {
+            pointer.active = true;
+            pointer.targetX = clientX;
+            pointer.targetY = clientY;
+            const nx = (clientX / Math.max(width, 1)).toFixed(2);
+            const ny = (clientY / Math.max(height, 1)).toFixed(2);
+            coordReadout.textContent = `WIND ${nx} × ${ny}`;
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            updatePointer(e.clientX, e.clientY);
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('click', (e) => {
+            updatePointer(e.clientX, e.clientY);
+            triggerKatanaSlash(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                const t = e.touches[0];
+                updatePointer(t.clientX, t.clientY);
+                triggerKatanaSlash(t.clientX, t.clientY);
+            }
+        }, { passive: true });
+
+        /**
+         * ============================================================================
+         * 8. SLIDE-OVER SCROLL DRAWER (CHRONICLE / PHILOSOPHY / CONTACT)
+         * ============================================================================
+         */
+        const DRAWER_SECTIONS = {
+            split: { eyebrow: '01 / SPLIT', node: 'view-split', wide: true },
+            join: { eyebrow: '02 / REJOIN', node: 'view-join', wide: true },
+            about: {
+                eyebrow: '03 / HOW IT WORKS',
+                html: `
+                    <h2 class="drawer-heading">Split, save, rejoin.</h2>
+                    <div class="work-item"><div class="work-item-top"><span class="work-title">I. Add</span><span class="work-year">ZIP &bull; IMAGES &bull; FOLDER</span></div>
+                        <p class="drawer-copy">Drop a zip, images or a whole folder. Zips are read without unpacking, so big files stay fast.</p></div>
+                    <div class="work-item"><div class="work-item-top"><span class="work-title">II. Split</span><span class="work-year">10 &ndash; 100 MB</span></div>
+                        <p class="drawer-copy">Pick the largest size per part. A live plan shows every part before anything is built.</p></div>
+                    <div class="work-item"><div class="work-item-top"><span class="work-title">III. Rejoin</span><span class="work-year">CHECKSUMS</span></div>
+                        <p class="drawer-copy">Drop all the parts back in. Missing parts are flagged first, then everything is merged into one zip.</p></div>
+                    <p class="drawer-copy" style="margin-top:1.25rem">Everything runs in your browser and nothing is uploaded. A file larger than the limit is cut into .part001, .part002 pieces and rebuilt by Rejoin. Sizes use 1 MB = 1,000,000 bytes.</p>
+                    <div class="pills" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" onclick="openDrawer('split')">Start splitting</button></div>
+                `
+            }
+        };
+
+        const drawerBackdrop = document.getElementById('drawerBackdrop');
+        const drawerEyebrow = document.getElementById('drawerEyebrow');
+        const drawerBody = document.getElementById('drawerBody');
+        const drawerPanel = document.getElementById('drawerPanel');
+        const toastBanner = document.getElementById('toastBanner');
+        const toolStore = document.getElementById('toolStore');
+        let toastTimer = 0;
+        window.FSView = null;
+
+        function stowTool() { [...drawerBody.children].forEach(n => { if (n.classList && n.classList.contains('tool')) toolStore.appendChild(n); }); }
+        function showToast(msg) {
+            toastBanner.textContent = msg; toastBanner.classList.add('show');
+            clearTimeout(toastTimer); toastTimer = setTimeout(() => toastBanner.classList.remove('show'), 3600);
+        }
+        window.showToast = showToast;
+
+        function openDrawer(key) {
+            const section = DRAWER_SECTIONS[key] || DRAWER_SECTIONS.split;
+            window.FSView = key;
+            drawerEyebrow.textContent = section.eyebrow;
+            stowTool();
+            drawerBody.textContent = '';
+            if (section.node) drawerBody.appendChild(document.getElementById(section.node));
+            else drawerBody.innerHTML = section.html;
+            drawerPanel.classList.toggle('wide', !!section.wide);
+            drawerBody.scrollTop = 0; drawerPanel.scrollTop = 0;
+
+            drawerBackdrop.classList.add('open');
+            requestAnimationFrame(() => {
+                drawerBackdrop.classList.add('visible');
+            });
+        }
+
+        function closeDrawer() {
+            drawerBackdrop.classList.remove('visible');
+            setTimeout(() => {
+                if (!drawerBackdrop.classList.contains('visible')) drawerBackdrop.classList.remove('open');
+            }, 350);
+        }
+
+        function handleBackdropClick(e) {
+            if (e.target === drawerBackdrop) {
+                closeDrawer();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDrawer();
+        });
+
+        // Boot Canvas on Window Load
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = function () {
+            createWashiPaperTexture();
+            resizeCanvas();
+            animate();
+        };
+    </script>
+</body>
+</html>
