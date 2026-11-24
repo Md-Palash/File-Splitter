@@ -5,8 +5,8 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const UNIT={KB:1e3,MB:1e6,GB:1e9};
-const S={items:[],sample:false,base:'files',skipped:[],origItems:null,plan:null,busy:false,open:new Set(),
-  cfg:{value:25,unit:'MB',mode:'size',count:50,fit:false,compress:'keep',split:true,manifest:true,pattern:'{name}-part-{n}-of-{total}'},
+const S={items:[],sources:[],sample:false,base:'files',skipped:[],origItems:null,plan:null,busy:false,open:new Set(),
+  cfg:{value:25,unit:'MB',output:'zip',sort:'name',mode:'size',count:50,fit:false,compress:'keep',split:true,manifest:true,pattern:'{name}-part-{n}-of-{total}'},
   opt:{on:false,fmt:'webp',q:82,max:0}};
 const limitBytes=()=>Math.max(1,Math.min(3.9e9,(+S.cfg.value||1)*UNIT[S.cfg.unit]));
 const openDrawer=k=>window.openDrawer(k);
@@ -38,6 +38,7 @@ async function addFiles(list){
   srcNote('');
   if(!list.length)return;
   if(S.sample){S.items=[];S.sample=false;S.base='files';}
+  for(const {file,path} of list)if(!S.sources.some(x=>x.file.name===file.name&&x.file.size===file.size&&x.file.lastModified===file.lastModified))S.sources.push({file,path});
   S.origItems=null;$('#optStat').textContent='';
   const used=new Set(S.items.map(i=>i.path));
   let zips=0,loose=0,lastZip='';
@@ -86,48 +87,68 @@ let rp=0;
 function replan(){
   cancelAnimationFrame(rp);
   rp=requestAnimationFrame(()=>{
-    S.plan=planParts(S.items,{limit:limitBytes(),mode:S.cfg.mode,count:S.cfg.count,fit:S.cfg.fit,split:S.cfg.split,manifest:S.cfg.manifest,pattern:S.cfg.pattern,base:S.base});
+    S.plan=S.cfg.output==='raw'
+      ?planRaw(S.sources.map(x=>({name:x.file.name,size:x.file.size})),limitBytes())
+      :planParts(S.items,{limit:limitBytes(),mode:S.cfg.mode,count:S.cfg.count,fit:S.cfg.fit,split:S.cfg.split,manifest:S.cfg.manifest,pattern:S.cfg.pattern,base:S.base,sort:S.cfg.sort});
     renderStats();renderPlan();
   });
 }
 function renderStats(){
-  const orig=S.items.reduce((a,i)=>a+i.size,0),pack=S.items.reduce((a,i)=>a+i.packed,0);
-  $('#stFiles').textContent=S.items.length.toLocaleString();
+  const raw=S.cfg.output==='raw';
+  const src=raw?S.sources.map(x=>({size:x.file.size,packed:x.file.size})):S.items;
+  const orig=src.reduce((a,i)=>a+i.size,0),pack=src.reduce((a,i)=>a+i.packed,0);
+  $('#stFiles').textContent=src.length.toLocaleString();
   $('#stOrig').textContent=fmtBytes(orig);
-  $('#stPack').textContent=fmtBytes(pack);
+  $('#stPackLbl').textContent=raw?'Pieces':'In zip';
+  $('#stPack').textContent=raw?(S.plan?S.plan.parts.length.toLocaleString():'0'):fmtBytes(pack);
   $('#sampleBanner').hidden=!S.sample;
-  $('#patHint').textContent=S.plan&&S.plan.parts.length?'First part: '+S.plan.parts[0].filename:'Tokens: {name}  {n}  {total}';
+  $('#patHint').textContent=S.plan&&S.plan.parts.length&&!S.plan.raw?'First part: '+S.plan.parts[0].filename:'Tokens: {name}  {n}  {total}';
 }
-function partCard(p,lim){
+const MAXCARDS=150,SEQMAX=48;
+function partCard(p,lim,tot){
   const pct=Math.min(100,Math.round(p.bytes/lim*100));
-  const built=!!p.blob;
-  const status=p.error?`<span class="tag bad">Failed</span>`:built?(p.over?`<span class="tag bad">Over limit</span>`:p.ok?`<span class="tag good">Ready</span>`:`<span class="tag bad">Check failed</span>`):(p.over?`<span class="tag bad">Over limit</span>`:`<span class="tag">Estimate</span>`);
+  const built=!!p.blob,w=String(tot).length;
+  const status=p.error?`<span class="tag bad">Failed</span>`:p.saved?`<span class="tag good">Saved</span>`:built?(p.over?`<span class="tag bad">Over limit</span>`:p.ok?`<span class="tag good">Ready</span>`:`<span class="tag bad">Check failed</span>`):(p.over?`<span class="tag bad">Over limit</span>`:`<span class="tag">Estimate</span>`);
+  const save=`<div class="pills"><button class="pill" data-save="${p.n}" ${built&&p.ok?'':'disabled'}>${p.saved?'Save again':'Save'}</button></div>`;
+  if(p.raw){
+    const many=S.plan.sources.length>1;
+    return `<article class="part" id="part-${p.n}">
+    <div class="top2"><span class="no">${many?esc(p.srcName)+' · ':''}Piece ${pad(p.piece,String(p.pieces).length)} <i>of ${p.pieces}</i></span><span class="sz">${fmtBytes(p.bytes)}</span></div>
+    <div class="fillbar"><i data-w="${pct}"></i></div>
+    <div class="meta"><span>bytes ${p.start.toLocaleString()} to ${Math.max(p.start,p.end-1).toLocaleString()}</span>${status}</div>
+    <div class="nm">${esc(p.filename)}</div>${save}</article>`;
+  }
   const open=S.open.has(p.n);
   const rows=open?p.items.slice(0,300).map(it=>`<li><span>${esc(it.path)}</span><span>${fmtBytes(it.packed)}</span></li>`).join('')+(p.items.length>300?`<li><span>+${p.items.length-300} more</span><span></span></li>`:''):'';
+  const rng=p.items.length>1?`<div class="rng" title="First and last file in this part">${esc(base(p.items[0].path))} → ${esc(base(p.items[p.items.length-1].path))}</div>`:'';
   return `<article class="part" id="part-${p.n}">
-    <div class="top2"><span class="no">Part ${p.n}</span><span class="sz">${fmtBytes(built?p.blob.size:p.bytes)}</span></div>
+    <div class="top2"><span class="no">Part ${pad(p.n,w)} <i>of ${tot}</i></span><span class="sz">${fmtBytes(built?p.blob.size:p.bytes)}</span></div>
     <div class="fillbar ${p.over?'over':''}"><i data-w="${pct}"></i></div>
     <div class="meta"><span>${p.items.length.toLocaleString()} file${p.items.length===1?'':'s'}${p.group?' · '+esc(p.group):''}</span>${status}</div>
-    <div class="nm">${esc(p.filename)}</div>
-    <details data-n="${p.n}" ${open?'open':''}><summary>Show files</summary><ul class="files">${rows}</ul></details>
-    <div class="pills"><button class="pill" data-save="${p.n}" ${built&&p.ok?'':'disabled'}>${p.saved?'Save again':'Save'}</button></div>
+    <div class="nm">${esc(p.filename)}</div>${rng}
+    <details data-n="${p.n}" ${open?'open':''}><summary>Show files</summary><ul class="files">${rows}</ul></details>${save}
   </article>`;
 }
+const base=path=>path.slice(path.lastIndexOf('/')+1);
 function renderPlan(){
-  const el=$('#plan'),P=S.plan;
-  if(!S.items.length||!P){
-    el.innerHTML=`<div class="empty"><b>No files yet</b><br>Add a zip, images or a folder to see how it will be split.</div>`;
+  const el=$('#plan'),P=S.plan,raw=S.cfg.output==='raw';
+  if(!P||(!raw&&!S.items.length)||(raw&&!S.sources.length)){
+    el.innerHTML=`<div class="empty"><b>No files yet</b><br>${raw&&S.sample?'Raw pieces need a real file. Add one with Add zip or files.':'Add a zip, images or a folder to see how it will be split.'}</div>`;
     $('#buildBtn').disabled=true;$('#saveAllBtn').disabled=true;$('#footSummary').textContent='Add files to begin';return;
   }
   const lim=limitBytes(),built=P.parts.length&&P.parts.every(p=>p.blob&&p.ok);
   const sum=P.parts.reduce((a,p)=>a+(p.blob?p.blob.size:p.bytes),0);
   $('#buildBtn').disabled=S.busy||!P.parts.length;
-  $('#buildBtn').textContent=built?'Rebuild parts':'Create parts';
+  $('#buildBtn').textContent=built?'Rebuild parts':raw?'Create pieces':'Create parts';
   $('#saveAllBtn').disabled=S.busy||!built;
-  const chips=`<div class="chips"><span class="chip">${P.parts.length} part${P.parts.length===1?'':'s'}</span><span class="chip">${S.items.length.toLocaleString()} files</span><span class="chip">${built?'':'about '}${fmtBytes(sum)} total</span>${S.cfg.mode==='count'?'':`<span class="chip">limit ${fmtBytes(lim)}</span>`}</div>`;
+  const tot=P.parts.length,unit=raw?'piece':'part';
+  const nFiles=raw?S.sources.length:S.items.length;
+  const chips=`<div class="chips"><span class="chip">${tot} ${unit}${tot===1?'':'s'}</span><span class="chip">${nFiles.toLocaleString()} file${nFiles===1?'':'s'}</span><span class="chip">${built?'':'about '}${fmtBytes(sum)} total</span>${S.cfg.mode==='count'&&!raw?'':`<span class="chip">limit ${fmtBytes(lim)}</span>`}${tot?`<button class="pill ghost small" data-order="1">Order list (.txt)</button>`:''}</div>`;
+  const seq=tot>1?`<div class="seq" aria-label="Order of ${unit}s">${P.parts.slice(0,SEQMAX).map(p=>`<button class="dot ${p.saved?'saved':p.blob&&p.ok?'built':''}" data-goto="${p.n}" title="${esc(p.filename)}">${p.n}</button>`).join('')}${tot>SEQMAX?`<span class="more">+${tot-SEQMAX}</span>`:''}</div><p class="hint seqhint">Send or store them in this order. Each name carries its number, so they also sort correctly in any folder.</p>`:'';
   const warns=P.warnings.length?`<ul class="warns">${P.warnings.slice(0,6).map(w=>`<li>${esc(w)}</li>`).join('')}${P.warnings.length>6?`<li>+${P.warnings.length-6} more notes</li>`:''}</ul>`:'';
-  $('#footSummary').innerHTML=`<b>${P.parts.length}</b> part${P.parts.length===1?'':'s'} · ${built?'':'about '}<b>${fmtBytes(sum)}</b>`;
-  el.innerHTML=chips+warns+`<div class="parts">${P.parts.map(p=>partCard(p,S.cfg.mode==='count'?Math.max(...P.parts.map(x=>x.bytes)):lim)).join('')}</div>`;
+  $('#footSummary').innerHTML=`<b>${tot}</b> ${unit}${tot===1?'':'s'} · ${built?'':'about '}<b>${fmtBytes(sum)}</b>`;
+  const ref=raw?lim:S.cfg.mode==='count'?Math.max(...P.parts.map(x=>x.bytes)):lim;
+  el.innerHTML=chips+seq+warns+`<div class="parts">${P.parts.slice(0,MAXCARDS).map(p=>partCard(p,ref,tot)).join('')}</div>`+(tot>MAXCARDS?`<p class="hint">Showing the first ${MAXCARDS} of ${tot}. Save all still saves every one, in order.</p>`:'');
   applyWidths(el);
 }
 $('#plan').addEventListener('toggle',e=>{
@@ -146,6 +167,12 @@ function syncControls(){
   });
   $$('[data-preset]').forEach(b=>b.setAttribute('aria-pressed',c.unit==='MB'&&+c.value===+b.dataset.preset));
   $$('[data-sw]').forEach(b=>{const k=b.dataset.sw;b.setAttribute('aria-checked',String(k==='opt'?S.opt.on:c[k]));});
+  const raw=c.output==='raw';
+  $('#zipOnly').hidden=raw;
+  $('#outHint').textContent=raw?'Cuts each file into plain pieces named file.001, file.002 … Nothing is zipped, so any file type works. Join them with Rejoin here, or with copy /b (Windows) or cat (Mac, Linux).':'Packs your files into zip parts. Every part opens on its own.';
+  $$('[data-mb]').forEach(b=>{const on=c.unit==='MB'?+c.value===+b.dataset.mb:(c.unit==='GB'&&+c.value*1000===+b.dataset.mb);b.setAttribute('aria-pressed',on);});
+  const f=$$('[data-mb]').find(b=>b.getAttribute('aria-pressed')==='true');
+  $('#limitHint').textContent=f?f.dataset.hint+' Limits change, so check your service.':'Services change their limits, so check yours. Sizes are decimal (1 MB = 1,000,000 bytes) to stay safely under.';
   $('#countRow').hidden=c.mode!=='count';
   $('#optBody').hidden=!S.opt.on;
   const hints={size:'Fills each part up to the size limit.',count:'Puts the same number of files in each part.',type:'Keeps each file type (png, jpg, …) in its own parts, then fills them by size.',folder:'Keeps each top-level folder in its own parts, then fills them by size.'};
@@ -162,6 +189,11 @@ document.addEventListener('click',e=>{
     if(k==='unit')S.cfg.unit=v;
     syncControls();if(!k.startsWith('opt'))replan();return;
   }
+  const fb=e.target.closest('[data-mb]');
+  if(fb){const mb=+fb.dataset.mb;if(mb>=1000){S.cfg.value=mb/1000;S.cfg.unit='GB';}else{S.cfg.value=mb;S.cfg.unit='MB';}$('#limitVal').value=S.cfg.value;syncControls();replan();return;}
+  const go=e.target.closest('[data-goto]');
+  if(go){const c=document.getElementById('part-'+go.dataset.goto);if(c)c.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  if(e.target.closest('[data-order]')){saveOrderList();return;}
   const pr=e.target.closest('[data-preset]');
   if(pr){S.cfg.value=+pr.dataset.preset;S.cfg.unit='MB';$('#limitVal').value=S.cfg.value;syncControls();replan();return;}
   const sw=e.target.closest('[data-sw]');
@@ -177,7 +209,7 @@ $('#pickFiles').onclick=()=>$('#fileIn').click();
 $('#pickDir').onclick=()=>$('#dirIn').click();
 $('#fileIn').onchange=e=>{addFiles([...e.target.files].map(f=>({file:f,path:f.name})));e.target.value='';};
 $('#dirIn').onchange=e=>{addFiles([...e.target.files].map(f=>({file:f,path:f.webkitRelativePath||f.name})));e.target.value='';};
-$('#clearAll').onclick=()=>{S.items=[];S.sample=false;S.skipped=[];S.origItems=null;S.base='files';srcNote('');note('');replan();};
+$('#clearAll').onclick=()=>{S.items=[];S.sources=[];S.sample=false;S.skipped=[];S.origItems=null;S.base='files';srcNote('');note('');replan();};
 
 /* drag and drop for both views */
 let dragDepth=0;
@@ -192,7 +224,7 @@ addEventListener('drop',async e=>{
 
 
 $('#qSample').onclick=()=>{
-  S.items=makeSample();S.sample=true;S.base='sample';S.origItems=null;srcNote('');replan();openDrawer('split');
+  S.items=makeSample();S.sources=[];S.sample=true;S.base='sample';S.origItems=null;srcNote('');replan();openDrawer('split');
 };
 
 /* ---------- build and save ---------- */
@@ -202,6 +234,19 @@ async function createParts(){
   S.busy=true;note('');
   for(const p of P.parts){delete p.blob;delete p.ok;delete p.saved;}
   renderPlan();
+  if(P.raw){
+    try{
+      for(let i=0;i<P.sources.length;i++){
+        const f=S.sources[i].file;let done=0;
+        note(`Reading ${f.name} to record its checksum…`);
+        P.sources[i].crc=await crcOfBlob(f,n=>{done+=n;setBar('#buildBar','#buildBarWrap',(i+done/Math.max(1,f.size))/P.sources.length);});
+      }
+      P.parts.forEach(p=>{p.blob=S.sources[p.src].file.slice(p.start,p.end);p.ok=true;});
+      note(`All ${P.parts.length} pieces are ready. Save them one by one or choose Save all. The order list lets Rejoin check them automatically.`,'good');
+    }catch(err){note('Could not read the file: '+err.message,'bad');}
+    finally{S.busy=false;setBar('#buildBar','#buildBarWrap',null);renderPlan();}
+    return;
+  }
   const o={compress:S.cfg.compress,manifest:S.cfg.manifest};
   try{
     for(let i=0;i<P.parts.length;i++){
@@ -263,9 +308,40 @@ async function saveAll(){
       if(r==='declined'){note(`Stopped before part ${i+1}. Choose Save on the parts you still need.`);break;}
       if(r!=='saved')break;
       if(!DL)await sleep(600);
-      if(i===P.parts.length-1)note('All parts saved.','good');
+      if(i===P.parts.length-1){
+        try{await saveFile(orderListName(P),new Blob([orderListText(P)],{type:'text/plain'}));note('All parts saved, plus the order list.','good');}
+        catch(e){note('All parts saved.','good');}
+      }
     }
   }finally{S.busy=false;setBar('#buildBar','#buildBarWrap',null);renderPlan();}
+}
+function orderListName(P){return (P.raw?(P.sources.length===1?P.sources[0].name:'files'):S.base)+(P.raw?'-pieces.txt':'-order-list.txt');}
+function orderListText(P){
+  const tot=P.parts.length,w=String(tot).length,L=[];
+  L.push('FILE SPLITER · ORDER LIST','');
+  if(P.raw){
+    L.push(`Pieces: ${tot}   Largest piece: ${fmtBytes(Math.max(...P.parts.map(p=>p.bytes)))}`,'','Keep every piece. Put them back in this order:','');
+    for(const p of P.parts)L.push(`  ${pad(p.n,w)} of ${tot}   ${p.filename}   ${fmtBytes(p.bytes)}`);
+    L.push('','How to put the file back together','  1. Open File Spliter, choose Rejoin, add every piece (add this .txt too so they are checked).','  2. Or on your computer, in the folder that holds the pieces:');
+    for(const x of P.sources){
+      L.push(`       Windows (Command Prompt):  copy /b "${x.name}.*" "${x.name}"`,`       Mac or Linux (Terminal):   cat "${x.name}".* > "${x.name}"`);
+    }
+    L.push('');
+    for(const x of P.sources)L.push(`#FS name=${encodeURIComponent(x.name)} size=${x.size} ${x.crc==null?'':'crc32='+hex(x.crc)+' '}pieces=${x.pieces} piece=${P.parts.find(p=>p.src===P.sources.indexOf(x)).bytes}`);
+  }else{
+    L.push(`Archive: ${P.base}`,`Parts: ${tot}   Files: ${S.items.length}`,'','Send or store the parts in this order:','');
+    for(const p of P.parts){
+      const a=base(p.items[0].path),z=base(p.items[p.items.length-1].path);
+      L.push(`  ${pad(p.n,w)} of ${tot}   ${p.filename}   ${fmtBytes(p.blob?p.blob.size:p.bytes)}   ${p.items.length} file${p.items.length===1?'':'s'}${p.items.length>1?`   ${a} to ${z}`:`   ${a}`}`);
+    }
+    L.push('','How to put it back together','  1. Open File Spliter and choose Rejoin.','  2. Add every part zip, in any order.','  3. Choose Merge parts. Missing parts are flagged first.');
+  }
+  return L.join('\n')+'\n';
+}
+async function saveOrderList(){
+  const P=S.plan;if(!P||!P.parts.length)return;
+  try{await saveFile(orderListName(P),new Blob([orderListText(P)],{type:'text/plain'}));note('Saved the order list.','good');}
+  catch(e){note(e&&e.code==='declined'?'Save cancelled.':'Could not save the order list: '+((e&&e.message)||'error'),'bad');}
 }
 $('#buildBtn').onclick=createParts;
 $('#saveAllBtn').onclick=saveAll;
@@ -315,13 +391,21 @@ $('#optRun').onclick=runOptimize;
 $('#optReset').onclick=()=>{if(!S.origItems)return;S.items=S.origItems;S.origItems=null;$('#optStat').textContent='Original images restored.';replan();};
 
 /* ---------- rejoin ---------- */
-const J={srcs:[],busy:false};
+const J={srcs:[],raw:[],lists:[],busy:false};
 const CHUNK=/^(.*)\.part(\d{3,})$/;
 function jnote(m){const n=$('#jNote');n.hidden=!m;n.textContent=m||'';}
 async function jAdd(files){
   jnote('');const errs=[];
   for(const f of files){
-    if(J.srcs.some(s=>s.file.name===f.name&&s.file.size===f.size))continue;
+    const dup=x=>x.name===f.name&&x.size===f.size;
+    if(J.srcs.some(x=>dup(x.file))||J.raw.some(dup))continue;
+    if(/\.txt$/i.test(f.name)){
+      if(f.size>2e6){errs.push(`${f.name}: too large to be an order list.`);continue;}
+      const meta=parseOrderList(await f.text());
+      if(meta.length)J.lists.push(...meta);else errs.push(`${f.name} is not a File Spliter order list, so it was ignored.`);
+      continue;
+    }
+    if(RAWPIECE.test(f.name)&&!/\.zip$/i.test(f.name)){J.raw.push(f);continue;}
     try{
       const ens=await readZip(f),me=ens.find(e=>e.name===MANIFEST);let man=null;
       if(me){try{const raw=await entryRaw(f,me);man=JSON.parse(await (me.method===8?await inflateBlob(raw):raw).text());}catch(e){}}
@@ -330,6 +414,21 @@ async function jAdd(files){
   }
   if(errs.length)jnote(errs.join(' '));
   renderJoin();
+}
+function analyzeRaw(){
+  const groups=groupRaw(J.raw.map(f=>({name:f.name,size:f.size,file:f}))),problems=[],ok=[];
+  for(const g of groups){
+    const meta=J.lists.find(m=>m.name===g.base)||null;
+    if(!meta&&g.count===1&&g.max>1){problems.push(`${g.base}.${String(g.max).padStart(3,'0')} does not look like a piece of a split file.`);g.skip=true;continue;}
+    g.meta=meta;
+    const want=meta&&meta.pieces?meta.pieces:g.max;
+    const miss=[];for(let i=1;i<=want&&miss.length<50;i++)if(!g.pieces.has(i))miss.push(i);
+    if(miss.length)problems.push(`${g.base} is missing piece${miss.length>1?'s':''} ${miss.slice(0,12).join(', ')}${miss.length>12?'…':''} of ${want}.`);
+    if(g.odd.length)problems.push(`${g.base}: pieces ${g.odd.slice(0,6).join(', ')} are a different size from the first. They may be damaged or from another split.`);
+    if(meta&&meta.size&&!miss.length&&g.size!==meta.size)problems.push(`${g.base}: the pieces add up to ${fmtBytes(g.size)}, but the original was ${fmtBytes(meta.size)}.`);
+    g.complete=!miss.length;
+  }
+  return {groups:groups.filter(g=>!g.skip),problems};
 }
 function analyze(){
   const mans=J.srcs.map(s=>s.manifest).filter(Boolean);
@@ -354,21 +453,26 @@ function analyze(){
     if(miss.length)problems.push(`${name} is missing piece${miss.length>1?'s':''} ${miss.join(', ')} of ${n}.`);
   }
   if(missingParts.length)problems.push(`Missing part${missingParts.length>1?'s':''} ${missingParts.join(', ')} of ${total}.`);
-  return {mans,total,have,missingParts,plain,series,problems,archive:(mans[0]&&mans[0].archive)||'restored'};
+  const R=analyzeRaw();
+  return {mans,total,have,missingParts,plain,series,problems:problems.concat(R.problems),raw:R.groups,archive:(mans[0]&&mans[0].archive)||'restored'};
 }
 function renderJoin(){
   const el=$('#jSummary');
-  if(!J.srcs.length){$('#jFootSummary').textContent='Add the part zips';el.innerHTML=`<div class="empty"><b>No parts yet</b><br>Add the zips you made with Split. Missing parts are flagged before you merge.</div>`;return;}
+  if(!J.srcs.length&&!J.raw.length){$('#jFootSummary').textContent='Add the parts';el.innerHTML=`<div class="empty"><b>No parts yet</b><br>Add the zips or numbered pieces you made with Split. Missing parts are flagged before you merge.</div>`;return;}
   const A=analyze();
-  const files=A.plain.length+A.series.size;
-  $('#jFootSummary').innerHTML=`<b>${J.srcs.length}</b> zip${J.srcs.length===1?'':'s'}${A.total?' of '+A.total:''} · <b>${files.toLocaleString()}</b> files${A.problems.length?' · needs attention':''}`;
-  const chips=`<div class="chips"><span class="chip">${J.srcs.length} zip${J.srcs.length===1?'':'s'}${A.total?` of ${A.total}`:''}</span><span class="chip">${files.toLocaleString()} files</span>${A.series.size?`<span class="chip">${A.series.size} rebuilt from pieces</span>`:''}</div>`;
-  const probs=A.problems.length?`<ul class="warns" style="margin-top:12px">${A.problems.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`:`<div class="note good" style="margin-top:12px">${A.mans.length?'Every part is here.':'No manifest found. Pieces will be joined by their .partNNN order.'}</div>`;
-  el.innerHTML=chips+probs+`<ul class="list">${J.srcs.map(s=>`<li><span>${esc(s.file.name)}</span><span>${s.manifest?'part '+s.manifest.part+' · ':''}${s.entries.length} files · ${fmtBytes(s.file.size)}</span></li>`).join('')}</ul>`;
+  const files=A.plain.length+A.series.size+A.raw.length;
+  const pieces=A.raw.reduce((a,g)=>a+g.count,0);
+  $('#jFootSummary').innerHTML=`<b>${J.srcs.length+pieces}</b> part${J.srcs.length+pieces===1?'':'s'}${A.total&&!A.raw.length?' of '+A.total:''} · <b>${files.toLocaleString()}</b> file${files===1?'':'s'}${A.problems.length?' · needs attention':''}`;
+  const chips=`<div class="chips">${J.srcs.length?`<span class="chip">${J.srcs.length} zip${J.srcs.length===1?'':'s'}${A.total?` of ${A.total}`:''}</span>`:''}${pieces?`<span class="chip">${pieces} raw piece${pieces===1?'':'s'}</span>`:''}<span class="chip">${files.toLocaleString()} file${files===1?'':'s'}</span>${A.series.size?`<span class="chip">${A.series.size} rebuilt from pieces</span>`:''}</div>`;
+  const okMsg=J.srcs.length&&A.mans.length?'Every part is here.':J.srcs.length?'No manifest found. Pieces will be joined by their .partNNN order.':'Every piece is here.';
+  const probs=A.problems.length?`<ul class="warns" style="margin-top:12px">${A.problems.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`:`<div class="note good" style="margin-top:12px">${okMsg}</div>`;
+  const zl=J.srcs.map(s=>`<li><span>${esc(s.file.name)}</span><span>${s.manifest?'part '+s.manifest.part+' · ':''}${s.entries.length} files · ${fmtBytes(s.file.size)}</span></li>`);
+  const rl=A.raw.map(g=>`<li><span>${esc(g.base)}</span><span>${g.count}${g.meta&&g.meta.pieces?' of '+g.meta.pieces:g.max>g.count?' of '+g.max:''} pieces · ${fmtBytes(g.size)}${g.meta&&g.meta.crc32?' · checksum ready':''}</span></li>`);
+  el.innerHTML=chips+probs+`<ul class="list">${zl.concat(rl).join('')}</ul>`;
 }
 function jStat(m,f){$('#jStat').textContent=m;setBar('#jBar','#jBarWrap',f==null?null:f);}
 async function jVerify(){
-  if(J.busy||!J.srcs.length)return;J.busy=true;
+  if(J.busy||(!J.srcs.length&&!J.raw.length))return;J.busy=true;
   let totalBytes=0,done=0,bad=[],count=0;
   for(const s of J.srcs)for(const e of s.entries)totalBytes+=e.comp;
   try{
@@ -384,16 +488,36 @@ async function jVerify(){
         await sleep(0);
       }
     }
-    jStat(bad.length?`${bad.length} file${bad.length>1?'s':''} failed the checksum: ${bad.slice(0,5).join(', ')}${bad.length>5?'…':''}`:`All ${count} files passed the checksum check.`,null);
+    const R=analyze().raw.filter(g=>g.complete),rawMsg=[];
+    let rawTotal=R.reduce((a,g)=>a+g.size,0),rawDone=0;
+    for(const g of R){
+      let c=0xFFFFFFFF;
+      for(const i of g.order){
+        const rd=g.pieces.get(i).file.stream().getReader();
+        for(;;){const x=await rd.read();if(x.done)break;c=crcUpdate(c,x.value);rawDone+=x.value.length;jStat(`Checking ${g.base}…`,rawDone/Math.max(1,rawTotal));}
+      }
+      const got=hex((c^0xFFFFFFFF)>>>0);
+      if(g.meta&&g.meta.crc32)rawMsg.push(got===g.meta.crc32?`${g.base}: checksum matches the original.`:`${g.base}: checksum does NOT match (got ${got}, expected ${g.meta.crc32}).`);
+      else rawMsg.push(`${g.base}: CRC32 ${got}. Add the order list (.txt) to compare it automatically.`);
+    }
+    const zipMsg=J.srcs.length?(bad.length?`${bad.length} file${bad.length>1?'s':''} failed the checksum: ${bad.slice(0,5).join(', ')}${bad.length>5?'…':''}`:`All ${count} zip files passed the checksum check.`):'';
+    jStat([zipMsg].concat(rawMsg).filter(Boolean).join(' ')||'Nothing to check yet.',null);
   }catch(err){jStat('Verify stopped: '+err.message,null);}
   finally{J.busy=false;}
 }
 async function jMerge(){
-  if(J.busy||!J.srcs.length)return;
+  if(J.busy||(!J.srcs.length&&!J.raw.length))return;
   const A=analyze();
   if(A.problems.length){jStat('Fix the problems listed on the right first. '+A.problems[0],null);return;}
   J.busy=true;
   try{
+    const msgs=[];
+    for(const g of A.raw){
+      const whole=new Blob(g.order.map(i=>g.pieces.get(i).file));
+      try{await saveFile(g.base,whole);msgs.push(`Joined ${g.count} pieces into ${g.base} (${fmtBytes(whole.size)}).`);}
+      catch(e){msgs.push(e&&e.code==='declined'?'Save cancelled.':e&&e.code==='unavailable'?`${g.base} joined, but saving is not available in this view.`:'Could not save '+g.base+': '+((e&&e.message)||'error'));}
+    }
+    if(!J.srcs.length){jStat(msgs.join(' '),null);return;}
     const zw=new ZipWriter();let i=0;const n=A.plain.length+A.series.size;
     for(const {s,en} of A.plain){
       zw.add(en.name,{method:en.method,crc:en.crc,comp:en.comp,size:en.size,data:await entryRaw(s.file,en),time:en.time,date:en.date});
@@ -410,14 +534,14 @@ async function jMerge(){
       jStat(`Merging ${++i} of ${n}…`,i/n);await sleep(0);
     }
     const out=zw.finish(),fname=`${A.archive}-restored.zip`;
-    try{await saveFile(fname,out);jStat(`Merged ${n} files into ${fname} (${fmtBytes(out.size)}).`,null);}
+    try{await saveFile(fname,out);jStat(msgs.concat(`Merged ${n} files into ${fname} (${fmtBytes(out.size)}).`).join(' '),null);}
     catch(e){jStat(e&&e.code==='declined'?'Save cancelled.':e&&e.code==='unavailable'?'Merged, but saving is not available in this view.':'Could not save: '+((e&&e.message)||'error'),null);}
   }catch(err){jStat('Merge failed: '+err.message,null);}
   finally{J.busy=false;}
 }
 $('#jPick').onclick=()=>$('#jIn').click();
 $('#jIn').onchange=e=>{jAdd([...e.target.files]);e.target.value='';};
-$('#jClear').onclick=()=>{J.srcs=[];jnote('');jStat('',null);renderJoin();};
+$('#jClear').onclick=()=>{J.srcs=[];J.raw=[];J.lists=[];jnote('');jStat('',null);renderJoin();};
 $('#jVerify').onclick=jVerify;
 $('#jMerge').onclick=jMerge;
 

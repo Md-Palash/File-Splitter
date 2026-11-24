@@ -8,6 +8,9 @@ async function crcOfBlob(blob,onBytes){let c=0xFFFFFFFF;const r=blob.stream().ge
 const hex=n=>(n>>>0).toString(16).padStart(8,'0');
 const pad=(n,w)=>String(n).padStart(w,'0');
 const cmpPath=(a,b)=>a.path.localeCompare(b.path,undefined,{numeric:true,sensitivity:'base'});
+const cmpDate=(a,b)=>((a.date*65536+a.time)-(b.date*65536+b.time))||cmpPath(a,b);
+const cmpAdded=(a,b)=>((a.id||0)-(b.id||0))||cmpPath(a,b);
+const SORTS={name:cmpPath,date:cmpDate,added:cmpAdded};
 function fmtBytes(n){if(n<1e3)return n+' B';if(n<1e6)return (n/1e3).toFixed(1)+' KB';if(n<1e9)return (n/1e6).toFixed(n<1e7?2:1)+' MB';return (n/1e9).toFixed(2)+' GB';}
 function dosFromMs(ms){const d=new Date(ms||Date.now());const y=Math.max(1980,d.getFullYear());return {time:(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1),date:((y-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate()};}
 
@@ -111,7 +114,7 @@ async function getPayload(it,compress){
   return packBlob(await getUncompressed(it),null,compress);
 }
 
-function packGroup(list,cap,fit,maxEntries){
+function packGroup(list,cap,fit,maxEntries,cmp){
   const bins=[];
   if(!fit){
     let cur=null;
@@ -125,7 +128,7 @@ function packGroup(list,cap,fit,maxEntries){
       if(!b){b={items:[],used:0};bins.push(b);}
       b.items.push(w);b.used+=w.cost;
     }
-    for(const b of bins)b.items.sort((x,y)=>cmpPath(x.it,y.it));
+    for(const b of bins)b.items.sort((x,y)=>cmp(x.it,y.it));
   }
   return bins;
 }
@@ -135,7 +138,7 @@ function partFileName(pattern,base,n,total){
   return /\.zip$/i.test(s)?s:s+'.zip';
 }
 function planParts(items,cfg){
-  const warnings=[],man=!!cfg.manifest,count=cfg.mode==='count';
+  const warnings=[],man=!!cfg.manifest,count=cfg.mode==='count',cmp=SORTS[cfg.sort]||cmpPath;
   const idx=man?items.reduce((a,it)=>a+it.nb+14,0):0;
   const reserve=22+(man?30+46+2*MANIFEST.length+idx+400:0);
   const cap=cfg.limit-reserve;
@@ -152,7 +155,7 @@ function planParts(items,cfg){
         const n=Math.ceil(it.size/room),w=Math.max(3,String(n).length);
         for(let i=0;i<n;i++){
           const s=i*room,e=Math.min(it.size,s+room),path=it.path+'.part'+pad(i+1,w),nb=enc.encode(path).length;
-          work.push({it:{kind:'chunk',parent:it,index:i,total:n,start:s,end:e,size:e-s,packed:e-s,path,nb,time:it.time,date:it.date,ext:it.ext,top:it.top},cost:(e-s)+ov(nb)});
+          work.push({it:{kind:'chunk',id:(it.id||0)+(i+1)/1e6,parent:it,index:i,total:n,start:s,end:e,size:e-s,packed:e-s,path,nb,time:it.time,date:it.date,ext:it.ext,top:it.top},cost:(e-s)+ov(nb)});
         }
         warnings.push(`${it.path} is ${fmtBytes(it.size)}, so it is cut into ${n} pieces. Use Rejoin to put it back together.`);
         continue;
@@ -166,9 +169,9 @@ function planParts(items,cfg){
   for(const w of work){const k=keyOf(w);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(w);}
   const bins=[];
   for(const k of [...groups.keys()].sort((a,b)=>a.localeCompare(b))){
-    const list=groups.get(k).sort((a,b)=>cmpPath(a.it,b.it));
+    const list=groups.get(k).sort((a,b)=>cmp(a.it,b.it));
     if(count){const n=Math.max(1,cfg.count|0);for(let i=0;i<list.length;i+=n){const s=list.slice(i,i+n);bins.push({items:s,used:s.reduce((a,x)=>a+x.cost,0),group:k});}}
-    else for(const b of packGroup(list,cap,cfg.fit,60000)){b.group=k;bins.push(b);}
+    else for(const b of packGroup(list,cap,cfg.fit,60000,cmp)){b.group=k;bins.push(b);}
   }
   const total=bins.length;
   bins.forEach((b,i)=>{
@@ -191,9 +194,59 @@ async function buildPart(plan,part,o,onItem){
     if(onItem)await onItem(it);
   }
   if(o.manifest){
-    const bytes=enc.encode(JSON.stringify({tool:'Zip Slicer',version:1,archive:plan.base,part:part.n,totalParts:plan.parts.length,index:plan.index,files}));
+    const bytes=enc.encode(JSON.stringify({tool:'File Spliter',version:1,archive:plan.base,part:part.n,totalParts:plan.parts.length,index:plan.index,files}));
     const d=dosFromMs(Date.now());
     zw.add(MANIFEST,{method:0,crc:crcOfBytes(bytes),comp:bytes.length,size:bytes.length,data:bytes,time:d.time,date:d.date});
   }
   return zw.finish();
+}
+
+/* ---------- raw pieces: cut any file into name.001, name.002 ... and put them back ---------- */
+function planRaw(sources,limit){
+  const warnings=[],parts=[],out={raw:true,parts,warnings,error:false,sources:[]};
+  const lim=Math.max(1,Math.floor(limit));
+  let total=0;for(const x of sources)total+=Math.max(1,Math.ceil(x.size/lim));
+  if(total>20000){out.error=true;warnings.push('That would make '+total.toLocaleString()+' pieces. Choose a larger size.');return out;}
+  const used=new Set();
+  sources.forEach((x,si)=>{
+    let name=x.name,k=2;
+    while(used.has(name)){const m=/^(.*?)(\.[^.]+)?$/.exec(x.name);name=m[1]+' ('+k+++')'+(m[2]||'');}
+    used.add(name);
+    const n=Math.max(1,Math.ceil(x.size/lim)),w=Math.max(3,String(n).length);
+    out.sources.push({name,size:x.size,pieces:n});
+    if(n===1)warnings.push(x.name+' is not bigger than the limit, so it stays in one piece.');
+    for(let i=0;i<n;i++){
+      const start=i*lim,end=Math.min(x.size,start+lim);
+      parts.push({n:parts.length+1,src:si,srcName:name,piece:i+1,pieces:n,start,end,bytes:end-start,filename:name+'.'+pad(i+1,w),raw:true});
+    }
+  });
+  return out;
+}
+const RAWPIECE=/^(.*)\.(\d{3,})$/;
+function groupRaw(files){
+  const g=new Map();
+  for(const f of files){
+    const m=RAWPIECE.exec(f.name);if(!m)continue;
+    if(!g.has(m[1]))g.set(m[1],{base:m[1],pieces:new Map()});
+    g.get(m[1]).pieces.set(+m[2],f);
+  }
+  const out=[];
+  for(const x of g.values()){
+    const idx=[...x.pieces.keys()].sort((a,b)=>a-b),max=idx[idx.length-1],missing=[];
+    for(let i=1;i<=max&&missing.length<50;i++)if(!x.pieces.has(i))missing.push(i);
+    const first=x.pieces.get(idx[0]).size,odd=idx.slice(0,-1).filter(i=>x.pieces.get(i).size!==first);
+    out.push({base:x.base,pieces:x.pieces,order:idx,count:idx.length,max,missing,odd,size:idx.reduce((a,i)=>a+x.pieces.get(i).size,0)});
+  }
+  return out.sort((a,b)=>a.base.localeCompare(b.base));
+}
+/* The order list carries machine-readable "#FS" lines so Rejoin can check pieces automatically. */
+function parseOrderList(text){
+  const out=[];
+  for(const ln of String(text).split(/\r?\n/)){
+    if(!ln.startsWith('#FS '))continue;
+    const o={};
+    for(const kv of ln.slice(4).trim().split(/\s+/)){const i=kv.indexOf('=');if(i>0)o[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1));}
+    if(o.name)out.push({name:o.name,size:+o.size||0,crc32:o.crc32||'',pieces:+o.pieces||0,piece:+o.piece||0});
+  }
+  return out;
 }
