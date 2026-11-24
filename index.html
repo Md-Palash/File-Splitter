@@ -729,7 +729,7 @@
                 <button class="btn-primary" onclick="openDrawer('split')">
                     <span id="primaryCtaText">Split a File</span>
                 </button>
-                <button class="btn-ghost" onclick="triggerKatanaSlash(width * 0.65, height * 0.44)">
+                <button class="btn-ghost" onclick="startSwing()">
                     <span>Draw Katana Wind</span>
                     <span class="arrow">&rarr;</span>
                 </button>
@@ -1422,13 +1422,13 @@
             const small = width < 640;
             const mid = width < 960;
             const sc = Math.max(0.72, Math.min(1.18, Math.min(width, height) / 760));
-            const charH = Math.min(height * (small ? 0.30 : 0.40), 430);
+            const charH = Math.min(height * (small ? 0.27 : 0.355), 385);
             const charW = charH * ART.samurai.w / ART.samurai.h;
             const treeH = Math.min(height * (small ? 0.42 : mid ? 0.55 : 0.74), 780);
             const treeW = treeH * ART.tree.w / ART.tree.h;
             const top = height * 0.78;
             const cx = width * (small ? 0.58 : mid ? 0.61 : 0.655);
-            const tx = width * (small ? 0.98 : mid ? 0.91 : 0.875);
+            const tx = width * (small ? 0.93 : mid ? 0.86 : 0.82);
             // Ground profile: x -> y of the ledge top
             const g = [
                 [cx - charW * 1.45, top + 52 * sc],
@@ -1517,6 +1517,53 @@
             ctx.fill();
         }
 
+
+        /**
+         * Katana swing: the sword (with the gripping hand) is its own cached layer that
+         * rotates about the fist. wind-up -> strike -> wind slash leaves the tip -> settle.
+         */
+        let swing = null;
+        const TRAIL_N = 14;
+        const trailX = new Float32Array(TRAIL_N);
+        const trailY = new Float32Array(TRAIL_N);
+        let trailLen = 0;
+        const REST_BLADE = Math.atan2(ART.sword.ty - ART.sword.py, ART.sword.tx - ART.sword.px);
+        const SWING_MS = 1900;
+        const A_BACK = -1.0, A_FWD = 0.95;
+
+        function startSwing() {
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (isPaused || reduce) { triggerKatanaSlash(width * 0.65, height * 0.44); return; }
+            if (swing) return;
+            swing = { t: 0, last: performance.now(), fired: false };
+            trailLen = 0;
+        }
+
+        /** Sword angle (relative to rest) for swing progress p in 0..1. */
+        function swingAngle(p) {
+            if (p < 0.22) { const u = p / 0.22; return A_BACK * (1 - Math.pow(1 - u, 3)); }
+            if (p < 0.32) return A_BACK;
+            if (p < 0.47) { const u = (p - 0.32) / 0.15; return A_BACK + (A_FWD - A_BACK) * u * u * (3 - 2 * u); }
+            const u = (p - 0.47) / 0.53;
+            return u >= 1 ? 0 : A_FWD * Math.exp(-5 * u) * Math.cos(7 * u);
+        }
+
+        function drawSwingTrail(rgb, sc) {
+            if (trailLen < 2) return;
+            ctx.lineCap = 'round';
+            for (let pass = 0; pass < 2; pass++) {
+                for (let i = 1; i < trailLen; i++) {
+                    const f = i / trailLen;
+                    ctx.beginPath();
+                    ctx.moveTo(trailX[i - 1], trailY[i - 1]);
+                    ctx.lineTo(trailX[i], trailY[i]);
+                    ctx.lineWidth = (pass ? 1 : 4.5) * sc * (0.3 + f);
+                    ctx.strokeStyle = 'rgba(' + rgb + ',' + ((pass ? 0.85 : 0.22) * f).toFixed(3) + ')';
+                    ctx.stroke();
+                }
+            }
+        }
+
         function renderSamuraiAndCliff() {
             const pal = MOODS[activeVersion].palette;
             const normX = (pointer.x / Math.max(width, 1)) - 0.5;
@@ -1524,7 +1571,16 @@
             const L = sceneLayout();
             const sx = -normX * 52;
             const sy = -normY * 18;
-            const windGust = Math.sin(time * 1.9) * 0.6 + Math.sin(time * 3.4) * 0.4 + pointer.vx * 0.04;
+            let a = 0, lean = 0, sp = 0;
+            if (swing) {
+                const now = performance.now();
+                if (!isPaused) swing.t += Math.min(64, now - swing.last);
+                swing.last = now;
+                sp = swing.t / SWING_MS;
+                if (sp >= 1) { swing = null; sp = 0; trailLen = 0; } else { a = swingAngle(sp); lean = a * 0.03; }
+            }
+            const windGust = Math.sin(time * 1.9) * 0.6 + Math.sin(time * 3.4) * 0.4 + pointer.vx * 0.04
+                + (swing && sp > 0.4 ? Math.max(0, 1 - (sp - 0.4) / 0.35) * 1.6 : 0);
             const g = L.g;
 
             ctx.save();
@@ -1556,7 +1612,46 @@
             drawBlades(grass.rear, ox, L.top + sy, windGust, pal.mountainNear, 0.95);
 
             const sam = artBitmap('samurai', L.charH, '0,0,0', true);
-            ctx.drawImage(sam.c, ox - L.charW / 2, L.top + sy + 7 * L.sc - L.charH, sam.c.width / dpr, sam.c.height / dpr);
+            const k = L.charH / ART.samurai.h;
+            const bx0 = ox - L.charW / 2;
+            const feetY = L.top + sy + 7 * L.sc;
+            const by0 = feetY - L.charH;
+            const SW = ART.sword;
+            const sword = artBitmap('sword', SW.h * k, '0,0,0', true);
+            const pvx = bx0 + SW.px * k, pvy = by0 + SW.py * k;
+
+            ctx.save();
+            if (lean) {
+                ctx.translate(ox, feetY);
+                ctx.rotate(lean);
+                ctx.translate(-ox, -feetY);
+            }
+            // sword + hand layer sits behind the body so the fist covers the grip
+            ctx.save();
+            ctx.translate(pvx, pvy);
+            if (a) ctx.rotate(a);
+            ctx.drawImage(sword.c, -(SW.px - SW.ox) * k, -(SW.py - SW.oy) * k, SW.w * k, SW.h * k);
+            ctx.restore();
+            ctx.drawImage(sam.c, bx0, by0, L.charW, L.charH);
+            ctx.restore();
+
+            if (swing) {
+                // tip position in world space (sword rotation, then body lean about the feet)
+                const vx = (SW.tx - SW.px) * k, vy = (SW.ty - SW.py) * k;
+                const ca = Math.cos(a), sa = Math.sin(a);
+                let wx = pvx + vx * ca - vy * sa - ox, wy = pvy + vx * sa + vy * ca - feetY;
+                const cl = Math.cos(lean), sl = Math.sin(lean);
+                const tipX = ox + wx * cl - wy * sl, tipY = feetY + wx * sl + wy * cl;
+                if (sp >= 0.32 && sp < 0.72) {
+                    if (trailLen === TRAIL_N) { trailX.copyWithin(0, 1); trailY.copyWithin(0, 1); trailLen--; }
+                    trailX[trailLen] = tipX; trailY[trailLen] = tipY; trailLen++;
+                } else if (trailLen > 0 && sp >= 0.72) trailLen = Math.max(0, trailLen - 1);
+                drawSwingTrail(pal.accent || pal.gold, L.sc);
+                if (!swing.fired && sp >= 0.43) {
+                    swing.fired = true;
+                    triggerKatanaSlash(tipX, tipY, { angle: REST_BLADE + a + lean + 0.05 });
+                }
+            }
 
             drawBlades(grass.front, ox, L.top + sy, windGust, pal.ink, 0.98);
 
@@ -1639,14 +1734,16 @@
         /**
          * Trigger & Render Fleeting Calligraphic Sumi-e Katana Wind Slash (Iaijutsu)
          */
-        function triggerKatanaSlash(x, y) {
-            const baseAngle = -0.38 + (Math.random() - 0.5) * 0.55;
+        function triggerKatanaSlash(x, y, opts) {
+            const baseAngle = opts && opts.angle !== undefined ? opts.angle : -0.38 + (Math.random() - 0.5) * 0.55;
+            const slashLen = Math.max(width, height) * (0.5 + Math.random() * 0.22);
+            const off = opts ? slashLen * 0.5 * 0.9 : 0;
             katanaSlashes.push({
-                x,
-                y,
+                x: x + Math.cos(baseAngle) * off,
+                y: y + Math.sin(baseAngle) * off,
                 angle: baseAngle,
-                length: Math.max(width, height) * (0.5 + Math.random() * 0.22),
-                curve: (Math.random() > 0.5 ? 1 : -1) * (46 + Math.random() * 38),
+                length: slashLen,
+                curve: (opts ? 1 : Math.random() > 0.5 ? 1 : -1) * (46 + Math.random() * 38),
                 progress: 0
             });
 
