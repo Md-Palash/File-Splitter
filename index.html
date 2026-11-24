@@ -823,7 +823,7 @@
         <div class="tiles">
           <div class="tile"><small>Files</small><b id="stFiles">0</b></div>
           <div class="tile"><small>Original</small><b id="stOrig">0 B</b></div>
-          <div class="tile"><small>In zip</small><b id="stPack">0 B</b></div>
+          <div class="tile"><small id="stPackLbl">In zip</small><b id="stPack">0 B</b></div>
         </div>
         <div class="pills">
           <button class="pill primary" id="pickFiles">Add zip or files</button>
@@ -839,13 +839,30 @@
 
       <div class="card">
         <span class="step">Step 2</span><h2>How to split</h2>
-        <span class="lbl first">Largest size per part</span>
+        <span class="lbl first">Make</span>
+        <div class="pills" data-key="output">
+          <button class="pill" data-v="zip">Zip parts</button>
+          <button class="pill" data-v="raw">Raw pieces (.001, .002 …)</button>
+        </div>
+        <p class="hint" id="outHint"></p>
+
+        <span class="lbl">Largest size per part</span>
         <div class="pills" id="presets">
           <button class="pill" data-preset="10">10 MB</button>
-          <button class="pill" data-preset="20">20 MB</button>
           <button class="pill" data-preset="25">25 MB</button>
           <button class="pill" data-preset="50">50 MB</button>
           <button class="pill" data-preset="100">100 MB</button>
+          <button class="pill" data-preset="500">500 MB</button>
+        </div>
+        <span class="lbl">Fit for</span>
+        <div class="pills" id="fitfor">
+          <button class="pill" data-mb="18" data-hint="Gmail allows 25 MB per email, but attachments grow by about a third when encoded, so parts are kept at 18 MB.">Gmail · 18 MB</button>
+          <button class="pill" data-mb="14" data-hint="Outlook allows 20 MB per email, and encoding adds about a third, so parts are kept at 14 MB.">Outlook · 14 MB</button>
+          <button class="pill" data-mb="10" data-hint="Discord's free upload limit is 10 MB per file.">Discord · 10 MB</button>
+          <button class="pill" data-mb="95" data-hint="GitHub blocks single files over 100 MB.">GitHub · 95 MB</button>
+          <button class="pill" data-mb="1000" data-hint="Slack accepts files up to 1 GB.">Slack · 1 GB</button>
+          <button class="pill" data-mb="2000" data-hint="WhatsApp and Telegram accept documents up to 2 GB on free accounts.">WhatsApp · Telegram · 2 GB</button>
+          <button class="pill" data-mb="3900" data-hint="FAT32 USB drives cannot hold a file of 4 GB or more.">FAT32 USB · 3.9 GB</button>
         </div>
         <div class="field">
           <input type="number" id="limitVal" min="1" step="any" value="25" aria-label="Custom size">
@@ -855,8 +872,9 @@
             <button class="pill" data-v="GB">GB</button>
           </div>
         </div>
-        <p class="hint">Decimal sizes (1 MB = 1,000,000 bytes) keep parts safely under a limit. Common ceilings: email 20 MB, chat uploads about 30 MB, GitHub 100 MB. Check your service for its current limit.</p>
+        <p class="hint" id="limitHint">Services change their limits, so check yours. Sizes are decimal (1 MB = 1,000,000 bytes) to stay safely under.</p>
 
+        <div id="zipOnly">
         <span class="lbl">Split by</span>
         <div class="pills" data-key="mode">
           <button class="pill" data-v="size">Size</button>
@@ -874,6 +892,13 @@
           <button class="pill" data-v="false">Keep order</button>
           <button class="pill" data-v="true">Fewest parts</button>
         </div>
+        <span class="lbl">Order files by</span>
+        <div class="pills" data-key="sort">
+          <button class="pill" data-v="name">Name (1, 2, 10)</button>
+          <button class="pill" data-v="date">Date</button>
+          <button class="pill" data-v="added">As added</button>
+        </div>
+        <p class="hint">Parts are filled in this order, so each part holds a neat run such as frame-001 to frame-120.</p>
         <span class="lbl">Compression</span>
         <div class="pills" data-key="compress">
           <button class="pill" data-v="keep">Keep as is</button>
@@ -887,6 +912,7 @@
         <span class="lbl">Part names</span>
         <input type="text" id="pattern" value="{name}-part-{n}-of-{total}" aria-label="Part name pattern" spellcheck="false" autocomplete="off">
         <p class="hint" id="patHint"></p>
+        </div>
       </div>
 
       <div class="card">
@@ -931,12 +957,12 @@
 <div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="false">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="true">Rejoin</button></div>
       <div class="card">
         <span class="step">Step 1</span><h2>Add the parts</h2>
-        <p class="hint first">Drop every zip made with File Spliter, in any order. Missing parts are flagged before you merge.</p>
+        <p class="hint first">Drop every part: zips made with File Spliter, or raw pieces ending in .001, .002 …, in any order. Add the order list (.txt) too if you have it, so pieces are checked automatically. Missing parts are flagged before you merge.</p>
         <div class="pills">
-          <button class="pill primary" id="jPick">Choose part zips</button>
+          <button class="pill primary" id="jPick">Choose parts</button>
           <button class="pill ghost" id="jClear">Clear</button>
         </div>
-        <input type="file" id="jIn" multiple accept=".zip,application/zip" hidden>
+        <input type="file" id="jIn" multiple hidden>
         <div class="note bad" id="jNote" hidden></div>
       </div>
       <div class="card">
@@ -945,13 +971,13 @@
       </div>
       <div class="card">
         <span class="step">Step 3</span><h2>Check and merge</h2>
-        <p class="hint first">Verify reads every file and compares its checksum. Merge builds one zip with every file restored, including any that were cut into pieces.</p>
+        <p class="hint first">Verify compares checksums. Merge builds one zip with every file restored (zip parts), or joins raw pieces back into the original file.</p>
         <div class="bigbar" id="jBarWrap" hidden><i id="jBar"></i></div>
         <p class="hint" id="jStat" role="status"></p>
       </div>
     
-      <div class="actionbar"><div class="row"><span class="summary" id="jFootSummary">Add the part zips</span>
-        <button class="pill" id="jVerify">Verify</button><button class="pill primary" id="jMerge">Merge into one zip</button></div></div>
+      <div class="actionbar"><div class="row"><span class="summary" id="jFootSummary">Add the parts</span>
+        <button class="pill" id="jVerify">Verify</button><button class="pill primary" id="jMerge">Merge parts</button></div></div>
     </section>
 </div>
 <div class="dropveil" aria-hidden="true"><div><b>Drop to add</b><span>Zip files, images or a whole folder</span></div></div>
