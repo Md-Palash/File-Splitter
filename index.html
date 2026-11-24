@@ -25,7 +25,7 @@
     <!-- Google Fonts: Shippori Mincho, Cormorant Garamond, Plus Jakarta Sans, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Shippori+Mincho:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Shippori+Mincho:wght@400;500;600&display=swap" rel="stylesheet">
 
     <style>
         /* ============================================================================
@@ -128,11 +128,11 @@
             transition: background 0.75s ease, box-shadow 0.75s ease;
         }
         [data-version="1"] .scroll-vignette {
-            background: radial-gradient(circle at 24% 34%, rgba(239, 232, 216, 0.78) 0%, rgba(239, 232, 216, 0.16) 52%, rgba(24, 23, 21, 0.08) 100%);
+            background: radial-gradient(circle at 24% 34%, rgba(239, 232, 216, 0.78) 0%, rgba(239, 232, 216, 0) 42%, rgba(24, 23, 21, 0.08) 100%);
             box-shadow: inset 0 0 90px rgba(82, 68, 46, 0.16);
         }
         [data-version="2"] .scroll-vignette {
-            background: radial-gradient(circle at 24% 34%, rgba(229, 213, 190, 0.76) 0%, rgba(229, 213, 190, 0.14) 52%, rgba(45, 25, 16, 0.12) 100%);
+            background: radial-gradient(circle at 24% 34%, rgba(229, 213, 190, 0.76) 0%, rgba(229, 213, 190, 0) 42%, rgba(45, 25, 16, 0.12) 100%);
             box-shadow: inset 0 0 100px rgba(72, 42, 22, 0.22);
         }
         [data-version="3"] .scroll-vignette {
@@ -153,7 +153,8 @@
             font-family: var(--font-display);
             font-size: 0.78rem;
             letter-spacing: 0.42em;
-            color: var(--text-muted);
+            color: #fff;
+            mix-blend-mode: difference;
             opacity: 0.58;
             display: none;
             align-items: center;
@@ -240,43 +241,12 @@
             pointer-events: auto;
             display: flex;
             align-items: center;
-            gap: 1.25rem;
+            gap: 0.4rem;
         }
         @media (min-width: 640px) {
             .nav-links {
-                gap: 2.1rem;
+                gap: 0.6rem;
             }
-        }
-
-        .nav-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-family: var(--font-body);
-            font-size: 0.75rem;
-            font-weight: 400;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            cursor: pointer;
-            padding: 0.35rem 0;
-            position: relative;
-            transition: color 0.3s ease;
-        }
-        .nav-btn:hover {
-            color: var(--text-primary);
-        }
-        .nav-btn::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            width: 0%;
-            height: 1px;
-            background-color: var(--accent);
-            transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .nav-btn:hover::after {
-            width: 100%;
         }
 
         .nav-inquire-pill {
@@ -291,9 +261,16 @@
             letter-spacing: 0.06em;
             text-transform: uppercase;
             cursor: pointer;
+            white-space: nowrap;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             transition: border-color 0.3s ease, transform 0.25s ease;
+        }
+        @media (max-width: 520px) {
+            .nav-inquire-pill { padding: 0.4rem 0.72rem; font-size: 0.62rem; letter-spacing: 0.04em; }
+        }
+        @media (max-width: 440px) {
+            #brandWordmark { display: none; }
         }
         .nav-inquire-pill:hover {
             border-color: var(--accent);
@@ -493,6 +470,9 @@
             cursor: pointer;
             transition: background-color 0.35s ease, color 0.35s ease;
         }
+        @media (max-width: 440px) {
+            .version-tab { padding: 0.46rem 0.5rem; gap: 0.3rem; font-size: 0.64rem; }
+        }
         .version-tab:hover {
             color: var(--text-primary);
         }
@@ -543,7 +523,8 @@
             font-family: var(--font-mono);
             font-size: 0.6875rem;
             letter-spacing: 0.08em;
-            color: var(--text-muted);
+            color: #E9E2D2;
+            opacity: 0.72;
         }
         @media (min-width: 900px) {
             .interaction-hint {
@@ -665,34 +646,6 @@
             color: var(--accent);
         }
 
-        .form-field {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-        .form-label {
-            font-family: var(--font-mono);
-            font-size: 0.65rem;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-        }
-        .form-input, .form-textarea {
-            width: 100%;
-            padding: 0.72rem 0.9rem;
-            border-radius: var(--radius-card);
-            border: 1px solid var(--border-hairline);
-            background: transparent;
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            font-size: 0.85rem;
-            outline: none;
-            transition: border-color 0.25s ease;
-        }
-        .form-input:focus, .form-textarea:focus {
-            border-color: var(--accent);
-        }
-
         .drawer-footer {
             padding-top: 1.25rem;
             border-top: 1px solid var(--border-hairline);
@@ -751,8 +704,8 @@
             </a>
 
             <nav class="nav-links" aria-label="Primary">
-                <button class="nav-btn" onclick="openDrawer('split')">Split</button>
-                <button class="nav-btn" onclick="openDrawer('join')">Rejoin</button>
+                <button class="nav-inquire-pill" onclick="openDrawer('split')">Split</button>
+                <button class="nav-inquire-pill" onclick="openDrawer('join')">Rejoin</button>
                 <button class="nav-inquire-pill" onclick="openDrawer('about')">How it works</button>
             </nav>
         </header>
@@ -1009,6 +962,7 @@
 
     <script src="assets/core.js"></script>
     <script src="assets/tool.js"></script>
+    <script src="assets/art.js"></script>
     <script>
         /**
          * ============================================================================
@@ -1116,7 +1070,6 @@
             active: false
         };
 
-        let washiPattern = null;
         let mountainLayers = [];
         let mistBands = [];
         let petals = [];
@@ -1175,7 +1128,7 @@
                 octx.stroke();
             }
 
-            washiPattern = ctx.createPattern(off, 'repeat');
+            canvas.style.backgroundImage = 'url(' + off.toDataURL('image/png') + ')';
         }
 
         /**
@@ -1262,6 +1215,9 @@
                     scale: 0.75 + rand() * 0.35
                 });
             }
+
+            // 5. Foreground grass (needs ART from assets/art.js)
+            grass = buildGrass(rand);
         }
 
         function createSinglePetal(randFn, w, h, scatterAcrossScreen) {
@@ -1282,9 +1238,10 @@
          * High-DPI Retina Canvas Resize
          */
         function resizeCanvas() {
-            dpr = Math.min(window.devicePixelRatio || 1, 2);
             width = window.innerWidth;
             height = window.innerHeight;
+            // Cap the backing store at ~3.4 megapixels so 4K screens stay smooth
+            dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(3.4e6 / (width * height)));
 
             canvas.width = width * dpr;
             canvas.height = height * dpr;
@@ -1310,12 +1267,6 @@
             const pal = MOODS[activeVersion].palette;
             const normX = (pointer.x / Math.max(width, 1)) - 0.5;
             const normY = (pointer.y / Math.max(height, 1)) - 0.5;
-
-            // 1. Subtle Washi Paper Grain Overlay
-            if (washiPattern) {
-                ctx.fillStyle = washiPattern;
-                ctx.fillRect(0, 0, width, height);
-            }
 
             // 2. Iconic Ukiyo-e Sun Disc (or Silver Moon in Edition 03)
             const sunX = width * 0.60 - normX * 14;
@@ -1413,207 +1364,175 @@
 
         /**
          * ============================================================================
-         * 4. RENDER LAYER 2: LONE SAMURAI ON CLIFF LEDGE & GNARLED PINE (MATSU)
-         * Calligraphic Sumi-e brush silhouette with wind-animated haori cloak & pine
+         * 4. RENDER LAYER 2: PINE TREE, CLIFF LEDGE, SAMURAI & FRONT GRASS
+         * Tree and samurai are traced vectors (assets/art.js), rasterised once per
+         * size into small cached bitmaps, so every frame is just a drawImage call.
          * ============================================================================
          */
+        const artPaths = {};
+        const artBitmaps = {};
+        let grass = null;
+
+        function artBitmap(key, cssHeight, rgb, evenodd) {
+            const art = ART[key];
+            const h = Math.max(8, Math.round(cssHeight * dpr));
+            const id = h + '|' + rgb;
+            const hit = artBitmaps[key];
+            if (hit && hit.id === id) return hit;
+            const path = artPaths[key] || (artPaths[key] = new Path2D(art.d));
+            const k = h / art.h;
+            const c = document.createElement('canvas');
+            c.width = Math.ceil(art.w * k);
+            c.height = h;
+            const g = c.getContext('2d');
+            g.scale(k, k);
+            g.fillStyle = 'rgb(' + rgb + ')';
+            g.fill(path, evenodd ? 'evenodd' : 'nonzero');
+            return (artBitmaps[key] = { id: id, c: c });
+        }
+
+        /** Size and position of everything standing on the ledge (before parallax). */
+        function sceneLayout() {
+            const small = width < 640;
+            const mid = width < 960;
+            const sc = Math.max(0.72, Math.min(1.18, Math.min(width, height) / 760));
+            const charH = Math.min(height * (small ? 0.30 : 0.40), 430);
+            const charW = charH * ART.samurai.w / ART.samurai.h;
+            const treeH = Math.min(height * (small ? 0.42 : mid ? 0.55 : 0.74), 780);
+            const treeW = treeH * ART.tree.w / ART.tree.h;
+            const top = height * 0.78;
+            const cx = width * (small ? 0.58 : mid ? 0.61 : 0.655);
+            const tx = width * (small ? 0.98 : mid ? 0.91 : 0.875);
+            // Ground profile: x -> y of the ledge top
+            const g = [
+                [cx - charW * 1.45, top + 52 * sc],
+                [cx - charW * 0.66, top + 7 * sc],
+                [cx - charW * 0.32, top],
+                [cx + charW * 0.52, top - 1 * sc],
+                [cx + charW * 1.25, top + 9 * sc],
+                [tx, top + 14 * sc],
+                [width + 160, top + 30 * sc]
+            ];
+            return { sc: sc, charH: charH, charW: charW, treeH: treeH, treeW: treeW, top: top, cx: cx, tx: tx, g: g };
+        }
+
+        function groundAt(g, x) {
+            if (x <= g[0][0]) return g[0][1];
+            for (let i = 1; i < g.length; i++) {
+                if (x <= g[i][0]) {
+                    const t = (x - g[i - 1][0]) / (g[i][0] - g[i - 1][0]);
+                    return g[i - 1][1] + (g[i][1] - g[i - 1][1]) * t;
+                }
+            }
+            return g[g.length - 1][1];
+        }
+
+        /** Dense tapered grass: wide at the root, thinning to a sharp point. */
+        function buildGrass(rand) {
+            const L = sceneLayout();
+            const sc = L.sc;
+            const front = [];
+            const rear = [];
+            function blade(dx, h, w, lean, list) {
+                const x = L.cx + dx;
+                list.push({
+                    dx: dx, gy: groundAt(L.g, x) - L.top,
+                    h: h, w: w, lean: lean,
+                    ph: rand() * 6.283, k: 0.7 + rand() * 0.6
+                });
+            }
+            const from = -L.charW * 0.78, to = L.charW * 0.72;
+            // 1. Dense carpet in front of the samurai
+            for (let x = from; x < to; x += (1.5 + rand() * 1.5) * sc) {
+                const edge = Math.min(1, (x - from) / (L.charW * 0.4), (to - x) / (L.charW * 0.4));
+                const h = (13 + Math.pow(rand(), 1.5) * 31) * sc * (0.55 + 0.45 * edge);
+                blade(x, h, (2.3 + rand() * 2.9) * sc, (rand() - 0.42) * h * 0.55, front);
+            }
+            // 2. Tall fanned clumps that break up the line
+            for (let x = from + 8 * sc; x < to; x += (15 + rand() * 18) * sc) {
+                const n = 3 + Math.floor(rand() * 4);
+                for (let i = 0; i < n; i++) {
+                    const h = (26 + rand() * 20) * sc * Math.min(1, 0.35 + (x - from) / (L.charW * 0.4), (to - x) / (L.charW * 0.3) + 0.3);
+                    blade(x + (i - n / 2) * 2.4 * sc, h, (3.4 + rand() * 2.2) * sc, (i - (n - 1) / 2) * h * 0.2 + h * 0.08, front);
+                }
+            }
+            // 3. Rear layer, drawn behind the samurai for depth
+            for (let x = from; x < to; x += (3 + rand() * 3) * sc) {
+                const h = (20 + rand() * 24) * sc;
+                blade(x, h, (2 + rand() * 2.4) * sc, (rand() - 0.4) * h * 0.5, rear);
+            }
+            // 4. Sparse tufts across the ledge toward the tree
+            for (let x = to; x < L.tx + L.treeW * 0.3; x += (9 + rand() * 12) * sc) {
+                const h = (9 + rand() * 24) * sc;
+                blade(x, h, (2 + rand() * 2.2) * sc, (rand() - 0.4) * h * 0.5, front);
+            }
+            for (let x = from - 8 * sc; x > L.cx - L.charW * 1.5; x -= (8 + rand() * 10) * sc) {
+                const h = (8 + rand() * 18) * sc;
+                blade(x, h, (2 + rand() * 2) * sc, (rand() - 0.4) * h * 0.5, front);
+            }
+            return { front: front, rear: rear };
+        }
+
+        function drawBlades(list, ox, oy, gust, rgb, alpha) {
+            ctx.beginPath();
+            for (let i = 0; i < list.length; i++) {
+                const b = list[i];
+                const x = ox + b.dx;
+                const y = oy + b.gy + 3;
+                const bend = b.lean + (gust * 0.2 + Math.sin(time * 1.7 + b.ph) * 0.07) * b.h * b.k;
+                const tx = x + bend, ty = y - b.h;
+                const mx = x + bend * 0.2, my = y - b.h * 0.5;
+                const hw = b.w * 0.5;
+                ctx.moveTo(x - hw, y);
+                ctx.quadraticCurveTo(mx - hw * 0.62, my, tx, ty);
+                ctx.quadraticCurveTo(mx + hw * 0.62 + bend * 0.12, my, x + hw, y);
+            }
+            ctx.fillStyle = 'rgba(' + rgb + ',' + alpha + ')';
+            ctx.fill();
+        }
+
         function renderSamuraiAndCliff() {
             const pal = MOODS[activeVersion].palette;
             const normX = (pointer.x / Math.max(width, 1)) - 0.5;
             const normY = (pointer.y / Math.max(height, 1)) - 0.5;
-
-            // Foreground parallax anchor (positioned harmoniously on right-of-center cliff)
-            const fgShiftX = -normX * 52;
-            const fgShiftY = -normY * 18;
-
-            const cliffAnchorX = (width < 640 ? width * 0.72 : width * 0.74) + fgShiftX;
-            const cliffTopY = height * 0.77 + fgShiftY;
-            const scale = Math.max(0.72, Math.min(1.18, Math.min(width, height) / 760));
-
-            // Breeze sway harmonic influenced by pointer velocity
+            const L = sceneLayout();
+            const sx = -normX * 52;
+            const sy = -normY * 18;
             const windGust = Math.sin(time * 1.9) * 0.6 + Math.sin(time * 3.4) * 0.4 + pointer.vx * 0.04;
+            const g = L.g;
 
             ctx.save();
 
-            // ------------------------------------------------------------------
-            // A. Calligraphic Sumi-e Cliff Ledge & Brushwork Horizon
-            // ------------------------------------------------------------------
+            // A. Pine tree standing behind the ledge, swaying gently with the wind
+            const tree = artBitmap('tree', L.treeH, pal.ink, false);
+            const treeBase = groundAt(g, L.tx) + sy + 4 * L.sc;
+            ctx.save();
+            ctx.translate(L.tx + sx * 0.8, treeBase);
+            ctx.transform(1, 0, -windGust * 0.0035, 1, 0, 0);
+            ctx.drawImage(tree.c, -L.treeW / 2, -L.treeH, tree.c.width / dpr, tree.c.height / dpr);
+            ctx.restore();
+
+            // B. Cliff ledge
             ctx.beginPath();
-            ctx.moveTo(width * 0.36 + fgShiftX, height + 20);
-            ctx.quadraticCurveTo(
-                width * 0.48 + fgShiftX, cliffTopY + 55 * scale,
-                cliffAnchorX - 88 * scale, cliffTopY + 12 * scale
-            );
-            ctx.lineTo(cliffAnchorX - 38 * scale, cliffTopY - 2 * scale);
-            ctx.quadraticCurveTo(
-                cliffAnchorX + 25 * scale, cliffTopY - 4 * scale,
-                cliffAnchorX + 75 * scale, cliffTopY + 10 * scale
-            );
-            ctx.lineTo(width + 120, cliffTopY + 38 * scale);
-            ctx.lineTo(width + 120, height + 20);
-            ctx.closePath();
-
-            const cliffGrad = ctx.createLinearGradient(0, cliffTopY - 10, 0, height);
-            cliffGrad.addColorStop(0, `rgba(${pal.ink}, 0.96)`);
-            cliffGrad.addColorStop(1, `rgba(${pal.ink}, 1)`);
-            ctx.fillStyle = cliffGrad;
-            ctx.fill();
-
-            // Crisp calligraphic Sumi-e ink brush stroke along the cliff rim
-            ctx.beginPath();
-            ctx.moveTo(cliffAnchorX - 96 * scale, cliffTopY + 14 * scale);
-            ctx.quadraticCurveTo(
-                cliffAnchorX - 30 * scale, cliffTopY - 4 * scale,
-                cliffAnchorX + 78 * scale, cliffTopY + 10 * scale
-            );
-            ctx.strokeStyle = `rgba(${pal.ink}, 0.85)`;
-            ctx.lineWidth = 3.2 * scale;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-
-            // ------------------------------------------------------------------
-            // B. Gnarled Wind-Bent Japanese Pine Branch (Matsu) Framing Right Edge
-            // ------------------------------------------------------------------
-            const pineBaseX = cliffAnchorX + 135 * scale;
-            const pineBaseY = cliffTopY + 28 * scale;
-            const pineTipX = cliffAnchorX + 26 * scale + windGust * 4.5 * scale;
-            const pineTipY = cliffTopY - 148 * scale + windGust * 2 * scale;
-
-            ctx.strokeStyle = `rgba(${pal.ink}, 0.94)`;
-            ctx.lineCap = 'round';
-
-            // Main gnarled trunk curving inward
-            ctx.beginPath();
-            ctx.moveTo(pineBaseX, pineBaseY);
-            ctx.bezierCurveTo(
-                pineBaseX - 24 * scale, cliffTopY - 58 * scale,
-                pineBaseX - 92 * scale, cliffTopY - 108 * scale,
-                pineTipX, pineTipY
-            );
-            ctx.lineWidth = 8.5 * scale;
-            ctx.stroke();
-
-            // Secondary lower pine bough
-            const boughTipX = cliffAnchorX + 54 * scale + windGust * 5.5 * scale;
-            const boughTipY = cliffTopY - 96 * scale;
-            ctx.beginPath();
-            ctx.moveTo(pineBaseX - 34 * scale, cliffTopY - 62 * scale);
-            ctx.quadraticCurveTo(
-                pineBaseX - 66 * scale, cliffTopY - 88 * scale,
-                boughTipX, boughTipY
-            );
-            ctx.lineWidth = 4.2 * scale;
-            ctx.stroke();
-
-            // Ink-wash pine needle clusters (traditional Sumi-e fan pads)
-            const needlePads = [
-                { x: pineTipX, y: pineTipY, rx: 36 * scale, ry: 11 * scale },
-                { x: pineTipX + 34 * scale, y: pineTipY - 14 * scale, rx: 32 * scale, ry: 10 * scale },
-                { x: boughTipX, y: boughTipY, rx: 30 * scale, ry: 9.5 * scale }
-            ];
-            for (let n = 0; n < needlePads.length; n++) {
-                const pad = needlePads[n];
-                ctx.beginPath();
-                ctx.ellipse(pad.x, pad.y, pad.rx, pad.ry, -0.08, Math.PI, 0);
-                ctx.fillStyle = `rgba(${pal.ink}, 0.90)`;
-                ctx.fill();
+            ctx.moveTo(g[0][0] - width * 0.14 + sx, height + 20);
+            ctx.quadraticCurveTo(g[0][0] - width * 0.03 + sx, g[0][1] + 16 * L.sc + sy, g[0][0] + sx, g[0][1] + sy);
+            for (let i = 1; i < g.length - 1; i++) {
+                ctx.quadraticCurveTo(g[i][0] + sx, g[i][1] + sy, (g[i][0] + g[i + 1][0]) / 2 + sx, (g[i][1] + g[i + 1][1]) / 2 + sy);
             }
-
-            // ------------------------------------------------------------------
-            // C. Lone Samurai / Ronin Silhouette Standing Calmly on Cliff Ledge
-            // ------------------------------------------------------------------
-            const sx = cliffAnchorX - 18 * scale;
-            const sy = cliffTopY - 1 * scale;
-            const cloakFlutter = windGust * 6.5 * scale;
-
-            ctx.fillStyle = `rgba(${pal.ink}, 0.97)`;
-            ctx.strokeStyle = `rgba(${pal.ink}, 0.97)`;
-
-            // 1. Wide Hakama Trousers (planted grounded stance facing left toward the valley)
-            ctx.beginPath();
-            ctx.moveTo(sx - 7 * scale, sy - 54 * scale);  // Waist front
-            ctx.lineTo(sx - 18 * scale, sy);              // Front foot
-            ctx.lineTo(sx - 5 * scale, sy);
-            ctx.lineTo(sx + 1 * scale, sy - 26 * scale);  // Inner crease
-            ctx.lineTo(sx + 8 * scale, sy);
-            ctx.lineTo(sx + 21 * scale, sy + 1 * scale);  // Back foot
-            ctx.lineTo(sx + 11 * scale, sy - 54 * scale); // Waist back
+            ctx.lineTo(g[g.length - 1][0] + sx, g[g.length - 1][1] + sy);
+            ctx.lineTo(width + 160, height + 20);
             ctx.closePath();
+            ctx.fillStyle = 'rgb(' + pal.ink + ')';
             ctx.fill();
 
-            // 2. Flowing Windswept Haori Cloak / Jinbaori Cape
-            ctx.beginPath();
-            ctx.moveTo(sx - 6 * scale, sy - 86 * scale);  // Collar front
-            ctx.lineTo(sx + 7 * scale, sy - 86 * scale);  // Shoulder back
-            ctx.bezierCurveTo(
-                sx + 22 * scale + cloakFlutter * 0.5, sy - 68 * scale,
-                sx + 34 * scale + cloakFlutter, sy - 46 * scale,
-                sx + 40 * scale + cloakFlutter * 1.25, sy - 24 * scale
-            );
-            ctx.quadraticCurveTo(
-                sx + 22 * scale + cloakFlutter * 0.7, sy - 21 * scale,
-                sx + 9 * scale, sy - 30 * scale
-            );
-            ctx.lineTo(sx - 9 * scale, sy - 46 * scale);
-            ctx.closePath();
-            ctx.fill();
+            // C. Rear grass, then the samurai (solid black), then front grass
+            const ox = L.cx + sx;
+            drawBlades(grass.rear, ox, L.top + sy, windGust, pal.mountainNear, 0.95);
 
-            // 3. Torso & Forward-Gazing Head + Topknot (Chonmage) / Ronin Straw Kasa Accent
-            // Head & Neck
-            ctx.beginPath();
-            ctx.arc(sx - 2 * scale, sy - 95 * scale, 6.2 * scale, 0, Math.PI * 2);
-            ctx.fill();
+            const sam = artBitmap('samurai', L.charH, '0,0,0', true);
+            ctx.drawImage(sam.c, ox - L.charW / 2, L.top + sy + 7 * L.sc - L.charH, sam.c.width / dpr, sam.c.height / dpr);
 
-            // Traditional Samurai Topknot (Chonmage)
-            ctx.beginPath();
-            ctx.moveTo(sx + 1 * scale, sy - 100 * scale);
-            ctx.quadraticCurveTo(sx + 6 * scale, sy - 105 * scale, sx + 2 * scale, sy - 107 * scale);
-            ctx.lineWidth = 2.6 * scale;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-
-            // Flowing Headband Ribbon (Hachimaki) fluttering in the breeze
-            ctx.beginPath();
-            ctx.moveTo(sx + 3 * scale, sy - 96 * scale);
-            ctx.quadraticCurveTo(
-                sx + 16 * scale + cloakFlutter * 0.6, sy - 99 * scale + Math.sin(time * 4.5) * 2 * scale,
-                sx + 26 * scale + cloakFlutter, sy - 93 * scale + Math.cos(time * 4.5) * 2.5 * scale
-            );
-            ctx.lineWidth = 1.6 * scale;
-            ctx.stroke();
-
-            // 4. Katana & Wakizashi Scabbards (Saya) at Waist
-            // Long Katana curving gracefully backward & upward
-            ctx.beginPath();
-            ctx.moveTo(sx - 13 * scale, sy - 56 * scale); // Tsuka (hilt) forward
-            ctx.quadraticCurveTo(
-                sx + 8 * scale, sy - 53 * scale,
-                sx + 34 * scale + cloakFlutter * 0.15, sy - 63 * scale // Kojiri (scabbard tip)
-            );
-            ctx.lineWidth = 2.6 * scale;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-
-            // Subtle Oxidized Gold Tsuba (sword guard) glint
-            ctx.beginPath();
-            ctx.arc(sx - 7 * scale, sy - 55.5 * scale, 2.1 * scale, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${pal.gold}, 0.9)`;
-            ctx.fill();
-
-            // 5. Foreground Silhouette Reeds / Susuki Grass Swaying on Cliff Edge
-            ctx.strokeStyle = `rgba(${pal.ink}, 0.92)`;
-            for (let g = 0; g < 7; g++) {
-                const gx = cliffAnchorX - 68 * scale + g * 8 * scale;
-                const gy = cliffTopY + 6 * scale - (g % 3) * 2 * scale;
-                const gh = (16 + (g % 4) * 6) * scale;
-                const bend = (6 + windGust * 4.5) * scale;
-
-                ctx.beginPath();
-                ctx.moveTo(gx, gy);
-                ctx.quadraticCurveTo(gx + bend * 0.4, gy - gh * 0.6, gx + bend, gy - gh);
-                ctx.lineWidth = 1.15 * scale;
-                ctx.stroke();
-            }
+            drawBlades(grass.front, ox, L.top + sy, windGust, pal.ink, 0.98);
 
             ctx.restore();
         }
@@ -1700,8 +1619,8 @@
                 x,
                 y,
                 angle: baseAngle,
-                length: Math.min(width, height) * (0.28 + Math.random() * 0.14),
-                curve: (Math.random() > 0.5 ? 1 : -1) * (28 + Math.random() * 26),
+                length: Math.max(width, height) * (0.5 + Math.random() * 0.22),
+                curve: (Math.random() > 0.5 ? 1 : -1) * (46 + Math.random() * 38),
                 progress: 0
             });
 
@@ -1727,7 +1646,7 @@
             for (let i = katanaSlashes.length - 1; i >= 0; i--) {
                 const s = katanaSlashes[i];
                 if (!isPaused) {
-                    s.progress += 0.024;
+                    s.progress += 0.019;
                 }
                 if (s.progress >= 1) {
                     katanaSlashes.splice(i, 1);
@@ -1751,17 +1670,19 @@
                 // Tapered Sumi-e calligraphic crescent stroke
                 ctx.beginPath();
                 ctx.moveTo(startX, 0);
-                ctx.quadraticCurveTo(ctrlX, ctrlY - 3.6 * fadeAlpha, endX, 0);
-                ctx.quadraticCurveTo(ctrlX, ctrlY + 1.8 * fadeAlpha, startX, 0);
+                ctx.quadraticCurveTo(ctrlX, ctrlY - 34 * fadeAlpha, endX, 0);
+                ctx.quadraticCurveTo(ctrlX, ctrlY + 10 * fadeAlpha, startX, 0);
                 ctx.fillStyle = `rgba(${pal.slashInk}, ${(fadeAlpha * 0.72).toFixed(3)})`;
                 ctx.fill();
 
-                // Secondary fine wind-filament trail
+                // Fine wind-filament trails
+                ctx.strokeStyle = `rgba(${pal.accent || pal.gold}, ${(fadeAlpha * 0.4).toFixed(3)})`;
+                ctx.lineWidth = 1.2;
                 ctx.beginPath();
-                ctx.moveTo(startX + 18, 6);
-                ctx.quadraticCurveTo(ctrlX + 12, ctrlY + 12, endX - 10, 4);
-                ctx.strokeStyle = `rgba(${pal.accent || pal.gold}, ${(fadeAlpha * 0.35).toFixed(3)})`;
-                ctx.lineWidth = 0.9;
+                ctx.moveTo(startX + 30, 16);
+                ctx.quadraticCurveTo(ctrlX + 20, ctrlY + 30, endX - 20, 12);
+                ctx.moveTo(startX + 70, -14);
+                ctx.quadraticCurveTo(ctrlX, ctrlY - 40, endX - 60, -10);
                 ctx.stroke();
 
                 ctx.restore();
@@ -1791,12 +1712,16 @@
         /**
          * 60fps Animation Loop
          */
-        function animate() {
+        let lastDraw = 0;
+        function animate(now) {
+            requestAnimationFrame(animate);
+            // While the tool drawer is open, draw ~20 fps so zip work gets the CPU
+            if (drawerBackdrop.classList.contains('open') && now - lastDraw < 48) return;
+            lastDraw = now;
             if (!isPaused) {
                 time += 0.015;
             }
             renderFrame();
-            requestAnimationFrame(animate);
         }
 
         /**
