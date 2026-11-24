@@ -20,7 +20,6 @@
 .dropveil{position:fixed;inset:12px;z-index:80;border-radius:28px;border:2px dashed var(--accent);background:color-mix(in srgb,var(--bg-color) 80%,transparent);backdrop-filter:blur(6px);display:none;place-items:center;text-align:center;pointer-events:none;color:var(--text-primary)}
 .dropveil b{display:block;font:500 2rem/1.2 var(--font-display)}
 .dropveil span{color:var(--text-muted);font-size:.9rem}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .noscript{position:fixed;inset:auto 16px 16px;z-index:90;padding:14px 18px;border-radius:12px;background:#fff;color:#222;font-weight:600}
 .tool .pill{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:0 17px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;font-size:13.5px;letter-spacing:.005em;white-space:nowrap;transition:background .2s,color .2s,border-color .2s,transform .15s,box-shadow .2s}
 .tool .pill:hover:not(:disabled){border-color:color-mix(in srgb,var(--accent) 55%,transparent);transform:translateY(-1px)}
@@ -33,12 +32,6 @@
 .tool .pills{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .tool .pills.gap{margin-top:14px}
 .tool .pills .pill{min-height:36px;padding:0 15px}
-.tool .icon-btn{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;border:1px solid transparent;background:transparent;color:var(--text);transition:background .2s,border-color .2s,transform .2s}
-.tool .icon-btn:hover{background:var(--surface);border-color:var(--border)}
-.tool .icon-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.tool .icon-btn .i-play{display:none;fill:currentColor;stroke:none}
-.tool .icon-btn[aria-pressed="true"] .i-pause{display:none}
-.tool .icon-btn[aria-pressed="true"] .i-play{display:block}
 .tool #shuffleBtn:active svg{transform:rotate(180deg);transition:transform .5s var(--ease)}
 .tool .card{background:color-mix(in srgb,var(--solid) 88%,transparent);border:1px solid var(--border);border-radius:22px;padding:18px 18px 16px;margin:0 0 12px}
 .tool .step,.tool .card>.step{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
