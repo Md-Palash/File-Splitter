@@ -1424,7 +1424,7 @@
             const sc = Math.max(0.72, Math.min(1.18, Math.min(width, height) / 760));
             const charH = Math.min(height * (small ? 0.27 : 0.355), 385);
             const charW = charH * ART.samurai.w / ART.samurai.h;
-            const treeH = Math.min(height * (small ? 0.42 : mid ? 0.55 : 0.74), 780);
+            const treeH = Math.min(height * (small ? 0.37 : mid ? 0.48 : 0.64), 680);
             const treeW = treeH * ART.tree.w / ART.tree.h;
             const top = height * 0.78;
             const cx = width * (small ? 0.58 : mid ? 0.61 : 0.655);
@@ -1527,9 +1527,10 @@
         const trailX = new Float32Array(TRAIL_N);
         const trailY = new Float32Array(TRAIL_N);
         let trailLen = 0;
+        const SWING_PT = [0, 0], SWING_H = [0, 0];
         const REST_BLADE = Math.atan2(ART.sword.ty - ART.sword.py, ART.sword.tx - ART.sword.px);
         const SWING_MS = 1900;
-        const A_BACK = -1.0, A_FWD = 0.95;
+        const A_BACK = -1.15, A_FWD = -3.1;   // he faces left: raise overhead, then cut forward (left) and down
 
         function startSwing() {
             const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1541,11 +1542,20 @@
 
         /** Sword angle (relative to rest) for swing progress p in 0..1. */
         function swingAngle(p) {
-            if (p < 0.22) { const u = p / 0.22; return A_BACK * (1 - Math.pow(1 - u, 3)); }
-            if (p < 0.32) return A_BACK;
-            if (p < 0.47) { const u = (p - 0.32) / 0.15; return A_BACK + (A_FWD - A_BACK) * u * u * (3 - 2 * u); }
-            const u = (p - 0.47) / 0.53;
-            return u >= 1 ? 0 : A_FWD * Math.exp(-5 * u) * Math.cos(7 * u);
+            if (p < 0.24) { const u = p / 0.24; return A_BACK * (1 - Math.pow(1 - u, 3)); }
+            if (p < 0.34) return A_BACK;
+            if (p < 0.5) { const u = (p - 0.34) / 0.16; return A_BACK + (A_FWD - A_BACK) * u * u * (3 - 2 * u); }
+            if (p < 0.64) return A_FWD;
+            const u = (p - 0.64) / 0.36;
+            return u >= 1 ? 0 : A_FWD * (1 - u * u * (3 - 2 * u));
+        }
+        const sstep = (a, b, p) => { const u = Math.max(0, Math.min(1, (p - a) / (b - a))); return u * u * (3 - 2 * u); };
+        /** Body: step forward (left) into the cut, lean back in the wind-up, forward in the strike. */
+        function swingBody(p) {
+            return {
+                step: sstep(0.26, 0.48, p) - sstep(0.66, 0.96, p),
+                lean: 0.02 * sstep(0, 0.24, p) - 0.06 * sstep(0.32, 0.5, p) + 0.04 * sstep(0.64, 1, p) + 0.0
+            };
         }
 
         function drawSwingTrail(rgb, sc) {
@@ -1571,16 +1581,16 @@
             const L = sceneLayout();
             const sx = -normX * 52;
             const sy = -normY * 18;
-            let a = 0, lean = 0, sp = 0;
+            let a = 0, lean = 0, sp = 0, stepX = 0;
             if (swing) {
                 const now = performance.now();
                 if (!isPaused) swing.t += Math.min(64, now - swing.last);
                 swing.last = now;
                 sp = swing.t / SWING_MS;
-                if (sp >= 1) { swing = null; sp = 0; trailLen = 0; } else { a = swingAngle(sp); lean = a * 0.03; }
+                if (sp >= 1) { swing = null; sp = 0; trailLen = 0; } else { a = swingAngle(sp); const bd = swingBody(sp); lean = bd.lean; stepX = -bd.step * L.charH * 0.075; }
             }
             const windGust = Math.sin(time * 1.9) * 0.6 + Math.sin(time * 3.4) * 0.4 + pointer.vx * 0.04
-                + (swing && sp > 0.4 ? Math.max(0, 1 - (sp - 0.4) / 0.35) * 1.6 : 0);
+                - (swing && sp > 0.4 ? Math.max(0, 1 - (sp - 0.4) / 0.35) * 1.6 : 0);
             const g = L.g;
 
             ctx.save();
@@ -1621,6 +1631,7 @@
             const pvx = bx0 + SW.px * k, pvy = by0 + SW.py * k;
 
             ctx.save();
+            ctx.translate(stepX, 0);
             if (lean) {
                 ctx.translate(ox, feetY);
                 ctx.rotate(lean);
@@ -1636,20 +1647,44 @@
             ctx.restore();
 
             if (swing) {
-                // tip position in world space (sword rotation, then body lean about the feet)
-                const vx = (SW.tx - SW.px) * k, vy = (SW.ty - SW.py) * k;
-                const ca = Math.cos(a), sa = Math.sin(a);
-                let wx = pvx + vx * ca - vy * sa - ox, wy = pvy + vx * sa + vy * ca - feetY;
-                const cl = Math.cos(lean), sl = Math.sin(lean);
-                const tipX = ox + wx * cl - wy * sl, tipY = feetY + wx * sl + wy * cl;
+                const ca = Math.cos(a), sa = Math.sin(a), cl = Math.cos(lean), sl = Math.sin(lean);
+                // world point of a spot on the sword layer (box units relative to the fist)
+                const swordPt = (lx, ly, out) => {
+                    const wx = pvx + (lx * ca - ly * sa) * k - ox, wy = pvy + (lx * sa + ly * ca) * k - feetY;
+                    out[0] = ox + wx * cl - wy * sl + stepX; out[1] = feetY + wx * sl + wy * cl;
+                };
+                const tip = SWING_PT;
+                swordPt(SW.tx - SW.px, SW.ty - SW.py, tip);
+                const tipX = tip[0], tipY = tip[1];
+
+                // second hand on the grip, arm reaching from the chest (grows in, retracts at the end)
+                const reach = sstep(0.0, 0.12, sp) * (1 - sstep(0.9, 0.99, sp));
+                if (reach > 0.01) {
+                    const hand = SWING_H;
+                    swordPt(Math.cos(REST_BLADE + Math.PI) * 62, Math.sin(REST_BLADE + Math.PI) * 62, hand);
+                    const bwx = bx0 + 350 * k - ox, bwy = by0 + 330 * k - feetY;
+                    const shX = ox + bwx * cl - bwy * sl + stepX, shY = feetY + bwx * sl + bwy * cl;
+                    const hx = shX + (hand[0] - shX) * reach, hy = shY + (hand[1] - shY) * reach;
+                    const ex = (shX + hx) / 2, ey = (shY + hy) / 2 + 26 * k * reach;
+                    ctx.save();
+                    ctx.fillStyle = ctx.strokeStyle = '#000';
+                    ctx.lineCap = ctx.lineJoin = 'round';
+                    ctx.lineWidth = 46 * k;
+                    ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(ex, ey); ctx.stroke();
+                    ctx.lineWidth = 30 * k;
+                    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(hx, hy); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(hx, hy, 20 * k, 0, 6.2832); ctx.fill();
+                    ctx.restore();
+                }
+
                 if (sp >= 0.32 && sp < 0.72) {
                     if (trailLen === TRAIL_N) { trailX.copyWithin(0, 1); trailY.copyWithin(0, 1); trailLen--; }
                     trailX[trailLen] = tipX; trailY[trailLen] = tipY; trailLen++;
                 } else if (trailLen > 0 && sp >= 0.72) trailLen = Math.max(0, trailLen - 1);
                 drawSwingTrail(pal.accent || pal.gold, L.sc);
-                if (!swing.fired && sp >= 0.43) {
+                if (!swing.fired && sp >= 0.45) {
                     swing.fired = true;
-                    triggerKatanaSlash(tipX, tipY, { angle: REST_BLADE + a + lean + 0.05 });
+                    triggerKatanaSlash(tipX, tipY, { angle: REST_BLADE + a + lean });
                 }
             }
 
@@ -1743,7 +1778,7 @@
                 y: y + Math.sin(baseAngle) * off,
                 angle: baseAngle,
                 length: slashLen,
-                curve: (opts ? 1 : Math.random() > 0.5 ? 1 : -1) * (46 + Math.random() * 38),
+                curve: (opts ? (Math.cos(baseAngle) < 0 ? -1 : 1) : Math.random() > 0.5 ? 1 : -1) * (46 + Math.random() * 38),
                 progress: 0
             });
 
