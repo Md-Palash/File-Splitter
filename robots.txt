@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://filesplitter.pages.dev/sitemap.xml
