@@ -819,7 +819,7 @@
     <!-- Tool views (moved into the drawer when opened) -->
 <div id="toolStore" hidden>
 <section id="view-split" class="tool">
-<div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="true">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="false">Rejoin</button></div>
+<div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="true">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="false">Rejoin</button><button class="pill" role="tab" data-open="combine" aria-pressed="false">Combine</button></div>
       <div class="card">
         <span class="step">Step 1</span><h2>Your files</h2>
         <div class="tiles">
@@ -956,7 +956,7 @@
         <button class="pill primary" id="buildBtn" disabled>Create parts</button><button class="pill" id="saveAllBtn" disabled>Save all</button></div></div>
     </section>
 <section id="view-join" class="tool">
-<div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="false">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="true">Rejoin</button></div>
+<div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="false">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="true">Rejoin</button><button class="pill" role="tab" data-open="combine" aria-pressed="false">Combine</button></div>
       <div class="card">
         <span class="step">Step 1</span><h2>Add the parts</h2>
         <p class="hint first">Drop every part: zips made with File Spliter, or raw pieces ending in .001, .002 …, in any order. Add the order list (.txt) too if you have it, so pieces are checked automatically. Missing parts are flagged before you merge.</p>
@@ -981,6 +981,34 @@
       <div class="actionbar"><div class="row"><span class="summary" id="jFootSummary">Add the parts</span>
         <button class="pill" id="jVerify">Verify</button><button class="pill primary" id="jMerge">Merge parts</button></div></div>
     </section>
+<section id="view-combine" class="tool">
+<div class="tabrow" role="tablist" aria-label="Mode"><button class="pill" role="tab" data-open="split" aria-pressed="false">Split</button><button class="pill" role="tab" data-open="join" aria-pressed="false">Rejoin</button><button class="pill" role="tab" data-open="combine" aria-pressed="true">Combine</button></div>
+      <div class="card">
+        <span class="step">Step 1</span><h2>Add files</h2>
+        <p class="hint first">Join several files of the same kind into one, in the order you choose. Add them here or drop them anywhere on the page. Nothing is uploaded. <span id="cSupport"></span></p>
+        <div class="pills">
+          <button class="pill primary" id="cPick">Add files</button>
+          <button class="pill ghost" id="cClear">Clear</button>
+        </div>
+        <input type="file" id="cIn" multiple hidden>
+        <div class="note bad" id="cNote" role="alert" hidden></div>
+      </div>
+      <div class="card">
+        <span class="step">Step 2</span><h2>Order</h2>
+        <p class="hint first">The top file comes first. Drag a row to move it, or use the arrow buttons (Alt + arrow keys also work on a focused row).</p>
+        <div id="cList"></div>
+      </div>
+      <div class="card">
+        <span class="step">Step 3</span><h2>Combine</h2>
+        <div id="cOpts"></div>
+        <div class="note bad" id="cProb" role="alert" hidden></div>
+        <div class="bigbar" id="cBarWrap" hidden><i id="cBar"></i></div>
+        <p class="hint" id="cStat" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="actionbar"><div class="row"><span class="summary" id="cFootSummary">Add the files</span>
+        <button class="pill primary" id="cBuild" disabled>Combine</button><button class="pill" id="cSave" disabled>Save</button></div></div>
+    </section>
 </div>
 <div class="dropveil" aria-hidden="true"><div><b>Drop to add</b><span>Zip files, images or a whole folder</span></div></div>
 <noscript><div class="noscript">File Spliter needs JavaScript to split and rejoin files in your browser. Nothing is uploaded, so there is no server fallback.</div></noscript>
@@ -990,6 +1018,8 @@
 
     <script src="assets/core.js"></script>
     <script src="assets/tool.js"></script>
+    <script src="assets/combine-core.js"></script>
+    <script src="assets/combine.js"></script>
     <script src="assets/art.js"></script>
     <script>
         /**
@@ -1932,6 +1962,7 @@
         const DRAWER_SECTIONS = {
             split: { eyebrow: '01 / SPLIT', node: 'view-split', wide: true },
             join: { eyebrow: '02 / REJOIN', node: 'view-join', wide: true },
+            combine: { eyebrow: '03 / COMBINE', node: 'view-combine', wide: true },
             about: {
                 eyebrow: '03 / HOW IT WORKS',
                 html: `

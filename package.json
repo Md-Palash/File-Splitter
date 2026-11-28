@@ -4,5 +4,5 @@
   "description": "Split big zips, folders and image sets into smaller parts and rejoin them, all in the browser.",
   "private": true,
   "license": "MIT",
-  "scripts": { "test": "node test/engine.test.mjs", "start": "npx --yes serve ." }
+  "scripts": { "test": "node test/engine.test.mjs && node test/combine.test.mjs && node test/combine-xlsx.test.mjs && node test/combine-mp4.test.mjs", "start": "npx --yes serve ." }
 }
