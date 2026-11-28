@@ -211,7 +211,7 @@ $('#fileIn').onchange=e=>{addFiles([...e.target.files].map(f=>({file:f,path:f.na
 $('#dirIn').onchange=e=>{addFiles([...e.target.files].map(f=>({file:f,path:f.webkitRelativePath||f.name})));e.target.value='';};
 $('#clearAll').onclick=()=>{S.items=[];S.sources=[];S.sample=false;S.skipped=[];S.origItems=null;S.base='files';srcNote('');note('');replan();};
 
-/* drag and drop for both views */
+/* drag and drop for all views */
 let dragDepth=0;
 addEventListener('dragenter',e=>{e.preventDefault();dragDepth++;document.body.classList.add('dragging');});
 addEventListener('dragleave',e=>{dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)document.body.classList.remove('dragging');});
@@ -219,7 +219,10 @@ addEventListener('dragover',e=>e.preventDefault());
 addEventListener('drop',async e=>{
   e.preventDefault();dragDepth=0;document.body.classList.remove('dragging');
   const list=await collectDrop(e.dataTransfer);
-  if(window.FSView==='join'&&$('#drawerBackdrop').classList.contains('open'))jAdd(list.map(x=>x.file));else addFiles(list);
+  const open=$('#drawerBackdrop').classList.contains('open');
+  if(window.FSView==='join'&&open)jAdd(list.map(x=>x.file));
+  else if(window.FSView==='combine'&&open&&window.FSCombine)window.FSCombine.add(list.map(x=>x.file));
+  else addFiles(list);
 });
 
 
@@ -550,6 +553,6 @@ $('#jMerge').onclick=jMerge;
 /* ---------- start ---------- */
 $('#pattern').value=S.cfg.pattern;
 syncControls();renderPlan();renderJoin();
-window.FSTool={state:S,addFiles};
+window.FSTool={state:S,addFiles,saveFile};
 getDL();
 })();
