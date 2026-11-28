@@ -1020,6 +1020,18 @@
     <script src="assets/tool.js"></script>
     <script src="assets/combine-core.js"></script>
     <script src="assets/combine.js"></script>
+    <script>
+        /* If the Combine scripts did not load (for example a file is missing on the server), say so instead of doing nothing. */
+        (function () {
+            if (window.FSCombine) return;
+            var p = document.getElementById('cPick'), n = document.getElementById('cNote');
+            if (!p || !n) return;
+            p.onclick = function () {
+                n.hidden = false;
+                n.textContent = 'Combine could not start because its script files did not load. Check that assets/combine-core.js and assets/combine.js are on the server next to assets/tool.js, then reload with Ctrl+F5.';
+            };
+        })();
+    </script>
     <script src="assets/art.js"></script>
     <script>
         /**
